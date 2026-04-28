@@ -403,7 +403,7 @@ function renderDashboard() {
         <div style="font-size:11px;color:#475569">${st.count} รายการ • ฿${fmtMoney(st.total)}</div>
       </div>
       <div style="overflow-x:auto"><table>
-        <thead><tr><th>เลขที่</th><th>วันที่</th><th>คู่สัญญา/ผู้ขาย</th><th>รายการ</th><th style="text-align:right">วงเงิน (บาท)</th><th>สถานะ</th><th style="width:100px"></th></tr></thead>
+        <thead><tr><th>เลขที่</th><th>วันที่</th><th>คู่สัญญา/ผู้ขาย</th><th>รายการ</th><th style="text-align:right">วงเงินตามสัญญา (บาท)</th><th>สถานะ</th><th style="width:100px"></th></tr></thead>
         <tbody>${st.items.map((item,idx)=>{
           const s=sc(item.status);
           const ri = item._rowIndex;
