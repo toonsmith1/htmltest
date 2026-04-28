@@ -173,6 +173,14 @@ const FIELDS = {
     {key:"vendor",label:"ผู้ขาย/ผู้รับจ้าง",type:"text",wide:1},
     {key:"taxId",label:"เลขประจำตัวผู้เสียภาษี",type:"text"},
     {key:"project",label:"รายการ",type:"textarea",wide:1},
+
+     // เพิ่ม 4 ฟิลด์ใหม่ (I, J, K, L) เพื่อให้ตำแหน่งบันทึกข้อมูลไม่เพี้ยน 
+    {key:"budget",label:"วงเงินงบประมาณ",type:"number",ph:"0.00"},
+    {key:"medianPrice",label:"ราคากลาง",type:"number",ph:"0.00"},
+    {key:"offeredPrice",label:"ราคาที่เสนอ",type:"number",ph:"0.00"},
+    {key:"agreedPrice",label:"ราคาที่ตกลงจ้าง",type:"number",ph:"0.00"},
+    // ข้อมูลหลักที่ต้องการโชว์ (M, N, O, P, Q, R)
+    
     {key:"amount",label:"วงเงิน (บาท)",type:"number",ph:"0.00"},
     {key:"deliveryStart",label:"กำหนดส่งมอบ (เริ่มต้น)",type:"text",ph:"เช่น 01/10/2568"},
     {key:"deliveryEnd",label:"กำหนดส่งมอบ (สิ้นสุด)",type:"text",ph:"เช่น 30/09/2569"},
@@ -187,6 +195,14 @@ const FIELDS = {
     {key:"party",label:"คู่สัญญา",type:"text",wide:1},
     {key:"taxId",label:"เลขประจำตัวผู้เสียภาษี",type:"text"},
     {key:"project",label:"รายการ/โครงการ",type:"textarea",wide:1},
+
+     // เพิ่ม 4 ฟิลด์ใหม่ (I, J, K, L) เพื่อให้ตำแหน่งบันทึกข้อมูลไม่เพี้ยน 
+    {key:"budget",label:"วงเงินงบประมาณ",type:"number",ph:"0.00"},
+    {key:"medianPrice",label:"ราคากลาง",type:"number",ph:"0.00"},
+    {key:"offeredPrice",label:"ราคาที่เสนอ",type:"number",ph:"0.00"},
+    {key:"agreedPrice",label:"ราคาที่ตกลงจ้าง",type:"number",ph:"0.00"},
+    // ข้อมูลหลักที่ต้องการโชว์ (M, N, O, P, Q, R)
+    
     {key:"amount",label:"วงเงินตามสัญญา (บาท)",type:"number",ph:"0.00"},
     {key:"startDate",label:"ระยะเวลาสัญญา (เริ่มต้น)",type:"text",ph:"เช่น 01/10/2568"},
     {key:"endDate",label:"ระยะเวลาสัญญา (สิ้นสุด)",type:"text",ph:"เช่น 31/03/2569"},
