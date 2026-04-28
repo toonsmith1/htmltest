@@ -7,11 +7,13 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 <style>
-/* CSS ส่วนเดิมคงไว้ทั้งหมดเพื่อความสวยงาม */
 *{margin:0;padding:0;box-sizing:border-box}
 :root{--bg:#080e1a;--card:rgba(15,23,42,0.65);--border:rgba(148,163,184,0.06);--text:#e2e8f0;--muted:#64748b;--accent:#38bdf8;--accent2:#6366f1}
 body{font-family:'IBM Plex Sans Thai','Noto Sans Thai',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
 *::-webkit-scrollbar{width:5px;height:5px}*::-webkit-scrollbar-track{background:transparent}*::-webkit-scrollbar-thumb{background:rgba(148,163,184,0.15);border-radius:10px}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.fade-up{animation:fadeUp .4s ease both}
 .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;backdrop-filter:blur(8px)}
 nav{background:rgba(8,14,26,0.95);border-bottom:1px solid rgba(56,189,248,0.08);backdrop-filter:blur(16px);position:sticky;top:0;z-index:200;padding:0 20px}
 .nav-inner{max-width:960px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:56px}
@@ -19,17 +21,41 @@ nav{background:rgba(8,14,26,0.95);border-bottom:1px solid rgba(56,189,248,0.08);
 .nav-btn.active{background:rgba(56,189,248,0.12);color:#38bdf8;font-weight:600}
 .main{max-width:960px;margin:0 auto;padding:20px 16px 60px}
 .inp{width:100%;padding:10px 12px;border-radius:8px;border:1px solid rgba(148,163,184,0.12);background:rgba(8,14,26,0.8);color:#e2e8f0;font-size:14px;font-family:inherit;outline:none}
-.btn-primary{padding:13px 20px;border-radius:10px;border:none;background:linear-gradient(135deg,#0ea5e9,#6366f1);color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;box-shadow:0 4px 20px rgba(14,165,233,0.2)}
-.status-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px}
-.status-dot{width:6px;height:6px;border-radius:50%}
+.inp:focus{border-color:rgba(56,189,248,0.3)}
+textarea.inp{resize:vertical}
+.btn-primary{padding:13px 20px;border-radius:10px;border:none;background:linear-gradient(135deg,#0ea5e9,#6366f1);color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;box-shadow:0 4px 20px rgba(14,165,233,0.2);transition:opacity .2s}
+.btn-primary:hover{opacity:.9}.btn-primary:disabled{opacity:.4;cursor:wait}
+.btn-ghost{padding:13px;border-radius:10px;border:1px solid rgba(148,163,184,0.12);background:transparent;color:#64748b;font-size:13px;cursor:pointer;font-family:inherit}
+.tab-btn{flex:1;padding:12px 10px;border-radius:10px;border:1px solid rgba(148,163,184,0.1);background:rgba(15,23,42,0.4);color:#64748b;font-size:13px;cursor:pointer;font-family:inherit;transition:all .15s}
+.tab-btn.active{border-color:#38bdf8;background:rgba(56,189,248,0.08);color:#38bdf8;font-weight:600}
+.status-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;white-space:nowrap}
+.status-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
 table{width:100%;border-collapse:collapse;font-size:12.5px}
-th{padding:10px 14px;text-align:left;color:#64748b;border-bottom:1px solid var(--border);background:rgba(15,23,42,0.5)}
+th{padding:10px 14px;text-align:left;font-weight:500;color:#64748b;border-bottom:1px solid var(--border);white-space:nowrap;background:rgba(15,23,42,0.5)}
 td{padding:10px 14px;border-bottom:1px solid rgba(148,163,184,0.04)}
+tr:hover td{background:rgba(56,189,248,0.03)}
+.mono{font-family:'JetBrains Mono',monospace}
 .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px 16px}
 .grid-2 .wide{grid-column:1/-1}
+.summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:20px}
+.summary-grand{grid-column:1/-1;background:linear-gradient(135deg,rgba(14,165,233,0.08),rgba(99,102,241,0.06));border:1px solid rgba(56,189,248,0.1)}
 .hidden{display:none}
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(6px);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px}
-.modal-box{background:#0f172a;border:1px solid rgba(56,189,248,0.15);border-radius:16px;max-width:640px;width:100%;max-height:85vh;overflow-y:auto}
+.error-box{padding:10px 14px;border-radius:10px;margin-bottom:16px;font-size:13px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);color:#f87171}
+.success-box{padding:10px 14px;border-radius:10px;margin-top:14px;font-size:13px;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);color:#4ade80}
+.bar-chart{display:flex;align-items:flex-end;gap:3px;height:56px}
+.bar{border-radius:4px 4px 0 0;transition:height .5s cubic-bezier(.4,0,.2,1);min-width:6px;max-width:28px;flex:1}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(6px);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn .2s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal-box{background:#0f172a;border:1px solid rgba(56,189,248,0.15);border-radius:16px;max-width:640px;width:100%;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.5);animation:slideUp .25s ease}
+@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.detail-row{display:flex;border-bottom:1px solid rgba(148,163,184,0.06);padding:10px 0}
+.detail-label{width:160px;flex-shrink:0;font-size:12px;color:#64748b;font-weight:500;padding-top:2px}
+.detail-value{flex:1;font-size:13px;color:#e2e8f0;word-break:break-word;white-space:pre-wrap}
+.detail-value:empty::after{content:"—";color:#334155}
+tr.clickable-row{cursor:pointer}
+tr.clickable-row:hover td{background:rgba(56,189,248,0.06)!important}
+.chk{width:16px;height:16px;accent-color:#38bdf8;cursor:pointer;margin:0}
+@media(max-width:640px){.grid-2{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -54,20 +80,30 @@ td{padding:10px 14px;border-bottom:1px solid rgba(148,163,184,0.04)}
 </nav>
 
 <div class="main">
-  <div class="card" style="padding:12px 16px;margin-bottom:20px;display:flex;gap:10px;align-items:center;justify-content:space-between">
+  <!-- ACTION BAR -->
+  <div class="card fade-up" style="padding:12px 16px;margin-bottom:20px;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap">
     <div id="statusText" style="font-size:13px;color:#94a3b8">📊 กำลังโหลดข้อมูล...</div>
     <button class="btn-primary" style="padding:8px 20px;font-size:13px" onclick="fetchData()">🔄 รีเฟรช</button>
   </div>
   <div id="errorBox" class="error-box hidden"></div>
 
+  <!-- DASHBOARD PAGE -->
   <div id="page-dashboard"></div>
+
+  <!-- FORM PAGE -->
   <div id="page-form" class="hidden"></div>
+
+  <!-- REPORT PAGE -->
   <div id="page-report" class="hidden"></div>
+
+  <!-- SCRIPT PAGE -->
   <div id="page-script" class="hidden"></div>
+
+  <p style="text-align:center;font-size:10px;color:#1e293b;margin-top:32px">ระบบทะเบียนคุมพัสดุ • ศูนย์ข้อมูลเกษตรแห่งชาติ สำนักงานเศรษฐกิจการเกษตร</p>
 </div>
 
 <script>
-// ═══════════ CONFIG (จุดที่แก้ไขหลัก) ═══════════
+// ═══════════ CONFIG ═══════════
 const WEB_APP_URL = "https://script.google.com/macros/s/AKfycby9H0DgQCCie6XxnvGmokCxCNwNnv16zlSSH0FZqN-d-ff2tIvoICtasD_xxxhxUaeT9Q/exec";
 
 const SHEET_TYPES = [
@@ -76,39 +112,10 @@ const SHEET_TYPES = [
   { id:"agreement", label:"ข้อตกลง", icon:"🤝" },
 ];
 
-// ปรับ Index ให้ตรงกับไฟล์ CSV ล่าสุด (เริ่มนับ A=0) 
 const COL_MAP = {
-  contract:  { no:0, date:4, party:5, project:7, amount:12, startDate:13, endDate:14, status:17 },
+  contract:  { no:0, date:4, party:5, project:7, amount:8, startDate:9, endDate:10, status:13 },
   po:        { no:0, date:4, party:5, project:7, amount:8, startDate:9, endDate:10, status:13 },
   agreement: { no:0, date:3, party:4, project:6, amount:7, startDate:8, endDate:9, status:12 },
-};
-
-const FIELDS = {
-  contract:[
-    {key:"contractNo",label:"เลขที่สัญญา",type:"text",ph:"เช่น 1/2569",req:1},
-    {key:"egpNo",label:"เลขที่โครงการ (egp)",type:"text"},
-    {key:"controlNo",label:"เลขคุมสัญญา",type:"text"},
-    {key:"poGfmis",label:"เลขที่ PO (GFMIS)",type:"text"},
-    {key:"signDate",label:"วันที่ลงนาม",type:"text"},
-    {key:"party",label:"คู่สัญญา",type:"text",wide:1},
-    {key:"taxId",label:"เลขประจำตัวผู้เสียภาษี",type:"text"},
-    {key:"project",label:"รายการ/โครงการ",type:"textarea",wide:1},
-    // เพิ่ม 4 ฟิลด์ใหม่ (I, J, K, L) เพื่อให้ตำแหน่งบันทึกข้อมูลไม่เพี้ยน 
-    {key:"budget",label:"วงเงินงบประมาณ",type:"number",ph:"0.00"},
-    {key:"medianPrice",label:"ราคากลาง",type:"number",ph:"0.00"},
-    {key:"offeredPrice",label:"ราคาที่เสนอ",type:"number",ph:"0.00"},
-    {key:"agreedPrice",label:"ราคาที่ตกลงจ้าง",type:"number",ph:"0.00"},
-    // ข้อมูลหลักที่ต้องการโชว์ (M, N, O, P, Q, R)
-    {key:"amount",label:"วงเงินตามสัญญา (บาท)",type:"number",ph:"0.00"},
-    {key:"startDate",label:"ระยะเวลาสัญญา (เริ่มต้น)",type:"text"},
-    {key:"endDate",label:"ระยะเวลาสัญญา (สิ้นสุด)",type:"text"},
-    {key:"guaranteeType",label:"ประเภทหลักประกันสัญญา",type:"select",opts:["หนังสือค้ำประกัน","เงินสด","เช็คธนาคาร","พันธบัตร","ยกเว้น"]},
-    {key:"guaranteeAmount",label:"มูลค่าหลักประกัน (บาท)",type:"text"},
-    {key:"status",label:"สถานะสัญญา",type:"select",opts:["ดำเนินการตามสัญญา","ตรวจรับแล้ว","เบิกจ่ายแล้ว","ยกเลิกสัญญา","คืนหลักประกัน"]},
-    {key:"note",label:"หมายเหตุ",type:"textarea",wide:1},
-  ],
-  po:{ no:0, date:4, party:5, project:7, amount:8, startDate:9, endDate:10, status:13 },
-  agreement:{ no:0, date:3, party:4, project:6, amount:7, startDate:8, endDate:9, status:12 },
 };
 
 const STATUS_COLORS = {
