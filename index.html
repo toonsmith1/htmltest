@@ -824,9 +824,9 @@ async function exportReport() {
     const r1 = ws1.getRow(row);
     r1.getCell(1).value = idx+1;
     r1.getCell(2).value = d[cm.project]||"";
-    r1.getCell(3).value = parseMoney(d[cm.amount]);
+    r1.getCell(3).value = parseMoney(d[cm.budget]);
     r1.getCell(3).numFmt = '#,##0.00';
-    r1.getCell(4).value = parseMoney(d[cm.amount]);
+    r1.getCell(4).value = parseMoney(d[cm.medianPrice]);
     r1.getCell(4).numFmt = '#,##0.00';
     r1.getCell(5).value = "เฉพาะเจาะจง";
     r1.getCell(6).value = d[cm.party]||"";
@@ -843,11 +843,11 @@ async function exportReport() {
     row++;
     const r2 = ws1.getRow(row);
     r2.getCell(6).value = "เสนอราคา";
-    r2.getCell(7).value = parseMoney(d[cm.amount]);
+    r2.getCell(7).value = parseMoney(d[cm.offeredPrice]);
     r2.getCell(7).numFmt = '#,##0.00';
     r2.getCell(8).value = "บาท";
-    r2.getCell(9).value = "เสนอราคา";
-    r2.getCell(10).value = parseMoney(d[cm.amount]);
+    r2.getCell(9).value = "ราคาที่ตกลง";
+    r2.getCell(10).value = parseMoney(d[cm.agreedPrice]);
     r2.getCell(10).numFmt = '#,##0.00';
     r2.getCell(11).value = "บาท";
     r2.getCell(13).value = d[cm.date]||"";
