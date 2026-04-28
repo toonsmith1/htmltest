@@ -114,8 +114,10 @@ const SHEET_TYPES = [
 
 const COL_MAP = {
   contract:  { no:0, date:4, party:5, project:7, amount:8, startDate:9, endDate:10, status:13 },
-  po:        { no:0, date:4, party:5, project:7, amount:8, startDate:9, endDate:10, status:13 },
-  agreement: { no:0, date:3, party:4, project:6, amount:7, startDate:8, endDate:9, status:12 },
+ // po:        { no:0, date:4, party:5, project:7, amount:8, startDate:9, endDate:10, status:13 },
+  //agreement: { no:0, date:3, party:4, project:6, amount:7, startDate:8, endDate:9, status:12 },
+  po:{ no:0, date:4, party:5, project:7, amount:8, startDate:9, endDate:10, status:13 },
+  agreement:{ no:0, date:3, party:4, project:6, amount:7, startDate:8, endDate:9, status:12 },
 };
 
 const STATUS_COLORS = {
@@ -146,6 +148,14 @@ const FIELDS = {
     {key:"party",label:"คู่สัญญา",type:"text",ph:"ชื่อบริษัท/หน่วยงาน",wide:1},
     {key:"taxId",label:"เลขประจำตัวผู้เสียภาษี",type:"text",ph:"13 หลัก"},
     {key:"project",label:"รายการ/โครงการ",type:"textarea",wide:1},
+
+       // เพิ่ม 4 ฟิลด์ใหม่ (I, J, K, L) เพื่อให้ตำแหน่งบันทึกข้อมูลไม่เพี้ยน 
+    {key:"budget",label:"วงเงินงบประมาณ",type:"number",ph:"0.00"},
+    {key:"medianPrice",label:"ราคากลาง",type:"number",ph:"0.00"},
+    {key:"offeredPrice",label:"ราคาที่เสนอ",type:"number",ph:"0.00"},
+    {key:"agreedPrice",label:"ราคาที่ตกลงจ้าง",type:"number",ph:"0.00"},
+    // ข้อมูลหลักที่ต้องการโชว์ (M, N, O, P, Q, R)
+    
     {key:"amount",label:"วงเงินตามสัญญา (บาท)",type:"number",ph:"0.00"},
     {key:"startDate",label:"ระยะเวลาสัญญา (เริ่มต้น)",type:"text",ph:"เช่น 27/02/2569"},
     {key:"endDate",label:"ระยะเวลาสัญญา (สิ้นสุด)",type:"text",ph:"เช่น 24/09/2569"},
