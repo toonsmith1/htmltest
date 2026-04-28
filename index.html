@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ทะเบียนคุมพัสดุ — ศูนย์ข้อมูลเกษตรแห่งชาติ</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<style>
+/* CSS ส่วนเดิมคงไว้ทั้งหมดเพื่อความสวยงาม */
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#080e1a;--card:rgba(15,23,42,0.65);--border:rgba(148,163,184,0.06);--text:#e2e8f0;--muted:#64748b;--accent:#38bdf8;--accent2:#6366f1}
+body{font-family:'IBM Plex Sans Thai','Noto Sans Thai',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+*::-webkit-scrollbar{width:5px;height:5px}*::-webkit-scrollbar-track{background:transparent}*::-webkit-scrollbar-thumb{background:rgba(148,163,184,0.15);border-radius:10px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;backdrop-filter:blur(8px)}
+nav{background:rgba(8,14,26,0.95);border-bottom:1px solid rgba(56,189,248,0.08);backdrop-filter:blur(16px);position:sticky;top:0;z-index:200;padding:0 20px}
+.nav-inner{max-width:960px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:56px}
+.nav-btn{padding:8px 16px;border-radius:8px;border:none;background:transparent;color:#64748b;font-size:13px;cursor:pointer;font-family:inherit;transition:all .15s}
+.nav-btn.active{background:rgba(56,189,248,0.12);color:#38bdf8;font-weight:600}
+.main{max-width:960px;margin:0 auto;padding:20px 16px 60px}
+.inp{width:100%;padding:10px 12px;border-radius:8px;border:1px solid rgba(148,163,184,0.12);background:rgba(8,14,26,0.8);color:#e2e8f0;font-size:14px;font-family:inherit;outline:none}
+.btn-primary{padding:13px 20px;border-radius:10px;border:none;background:linear-gradient(135deg,#0ea5e9,#6366f1);color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;box-shadow:0 4px 20px rgba(14,165,233,0.2)}
+.status-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px}
+.status-dot{width:6px;height:6px;border-radius:50%}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{padding:10px 14px;text-align:left;color:#64748b;border-bottom:1px solid var(--border);background:rgba(15,23,42,0.5)}
+td{padding:10px 14px;border-bottom:1px solid rgba(148,163,184,0.04)}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px 16px}
+.grid-2 .wide{grid-column:1/-1}
+.hidden{display:none}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(6px);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal-box{background:#0f172a;border:1px solid rgba(56,189,248,0.15);border-radius:16px;max-width:640px;width:100%;max-height:85vh;overflow-y:auto}
+</style>
+</head>
+<body>
+<div id="detailModal" class="hidden"></div>
+
+<nav>
+  <div class="nav-inner">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#0ea5e9,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:16px">📋</div>
+      <div>
+        <div style="font-size:14px;font-weight:700;color:#f1f5f9;line-height:1.2">ทะเบียนคุมพัสดุ</div>
+        <div style="font-size:10px;color:#475569">ศูนย์ข้อมูลเกษตรแห่งชาติ • 2569</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:4px">
+      <button class="nav-btn active" onclick="showPage('dashboard')">📊 แดชบอร์ด</button>
+      <button class="nav-btn" onclick="showPage('form')">✏️ กรอกข้อมูล</button>
+      <button class="nav-btn" onclick="showPage('report')">📥 สขร.1</button>
+      <button class="nav-btn" onclick="showPage('script')">⚙️ ตั้งค่า</button>
+    </div>
+  </div>
+</nav>
+
+<div class="main">
+  <div class="card" style="padding:12px 16px;margin-bottom:20px;display:flex;gap:10px;align-items:center;justify-content:space-between">
+    <div id="statusText" style="font-size:13px;color:#94a3b8">📊 กำลังโหลดข้อมูล...</div>
+    <button class="btn-primary" style="padding:8px 20px;font-size:13px" onclick="fetchData()">🔄 รีเฟรช</button>
+  </div>
+  <div id="errorBox" class="error-box hidden"></div>
+
+  <div id="page-dashboard"></div>
+  <div id="page-form" class="hidden"></div>
+  <div id="page-report" class="hidden"></div>
+  <div id="page-script" class="hidden"></div>
+</div>
+
+<script>
+// ═══════════ CONFIG (จุดที่แก้ไขหลัก) ═══════════
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycby9H0DgQCCie6XxnvGmokCxCNwNnv16zlSSH0FZqN-d-ff2tIvoICtasD_xxxhxUaeT9Q/exec";
+
+const SHEET_TYPES = [
+  { id:"contract", label:"สัญญา", icon:"📜" },
+  { id:"po", label:"ใบสั่งซื้อ/จ้าง/เช่า", icon:"🛒" },
+  { id:"agreement", label:"ข้อตกลง", icon:"🤝" },
+];
+
+// ปรับ Index ให้ตรงกับไฟล์ CSV ล่าสุด (เริ่มนับ A=0) 
+const COL_MAP = {
+  contract:  { no:0, date:4, party:5, project:7, amount:12, startDate:13, endDate:14, status:17 },
+  po:        { no:0, date:4, party:5, project:7, amount:8, startDate:9, endDate:10, status:13 },
+  agreement: { no:0, date:3, party:4, project:6, amount:7, startDate:8, endDate:9, status:12 },
+};
+
+const FIELDS = {
+  contract:[
+    {key:"contractNo",label:"เลขที่สัญญา",type:"text",ph:"เช่น 1/2569",req:1},
+    {key:"egpNo",label:"เลขที่โครงการ (egp)",type:"text"},
+    {key:"controlNo",label:"เลขคุมสัญญา",type:"text"},
+    {key:"poGfmis",label:"เลขที่ PO (GFMIS)",type:"text"},
+    {key:"signDate",label:"วันที่ลงนาม",type:"text"},
+    {key:"party",label:"คู่สัญญา",type:"text",wide:1},
+    {key:"taxId",label:"เลขประจำตัวผู้เสียภาษี",type:"text"},
+    {key:"project",label:"รายการ/โครงการ",type:"textarea",wide:1},
+    // เพิ่ม 4 ฟิลด์ใหม่ (I, J, K, L) เพื่อให้ตำแหน่งบันทึกข้อมูลไม่เพี้ยน 
+    {key:"budget",label:"วงเงินงบประมาณ",type:"number",ph:"0.00"},
+    {key:"medianPrice",label:"ราคากลาง",type:"number",ph:"0.00"},
+    {key:"offeredPrice",label:"ราคาที่เสนอ",type:"number",ph:"0.00"},
+    {key:"agreedPrice",label:"ราคาที่ตกลงจ้าง",type:"number",ph:"0.00"},
+    // ข้อมูลหลักที่ต้องการโชว์ (M, N, O, P, Q, R)
+    {key:"amount",label:"วงเงินตามสัญญา (บาท)",type:"number",ph:"0.00"},
+    {key:"startDate",label:"ระยะเวลาสัญญา (เริ่มต้น)",type:"text"},
+    {key:"endDate",label:"ระยะเวลาสัญญา (สิ้นสุด)",type:"text"},
+    {key:"guaranteeType",label:"ประเภทหลักประกันสัญญา",type:"select",opts:["หนังสือค้ำประกัน","เงินสด","เช็คธนาคาร","พันธบัตร","ยกเว้น"]},
+    {key:"guaranteeAmount",label:"มูลค่าหลักประกัน (บาท)",type:"text"},
+    {key:"status",label:"สถานะสัญญา",type:"select",opts:["ดำเนินการตามสัญญา","ตรวจรับแล้ว","เบิกจ่ายแล้ว","ยกเลิกสัญญา","คืนหลักประกัน"]},
+    {key:"note",label:"หมายเหตุ",type:"textarea",wide:1},
+  ],
+  po:{ no:0, date:4, party:5, project:7, amount:8, startDate:9, endDate:10, status:13 },
+  agreement:{ no:0, date:3, party:4, project:6, amount:7, startDate:8, endDate:9, status:12 },
+};
+
+const STATUS_COLORS = {
+  "ดำเนินการตามสัญญา":{bg:"#1e3a5f",fg:"#38bdf8",dot:"#38bdf8"},
+  "ดำเนินการ":{bg:"#1e3a5f",fg:"#38bdf8",dot:"#38bdf8"},
+  "รอส่งมอบ":{bg:"#1e3a5f",fg:"#38bdf8",dot:"#38bdf8"},
+  "อยู่ระหว่างดำเนินการตามใบสั่งจ้าง":{bg:"#1e3a5f",fg:"#38bdf8",dot:"#38bdf8"},
+  "ส่งมอบแล้ว":{bg:"#1a3348",fg:"#2dd4bf",dot:"#2dd4bf"},
+  "ส่งมอบงานตามสัญญา":{bg:"#1a3348",fg:"#2dd4bf",dot:"#2dd4bf"},
+  "ส่งมอบงานตามใบสั่งซื้อ":{bg:"#1a3348",fg:"#2dd4bf",dot:"#2dd4bf"},
+  "ตรวจรับแล้ว":{bg:"#1c2f1c",fg:"#4ade80",dot:"#4ade80"},
+  "เบิกจ่ายแล้ว":{bg:"#2a2520",fg:"#fbbf24",dot:"#fbbf24"},
+  "คืนหลักประกัน":{bg:"#2d2040",fg:"#c084fc",dot:"#c084fc"},
+  "ยกเลิกสัญญา":{bg:"#2a1a1a",fg:"#f87171",dot:"#f87171"},
+  "ยกเลิก":{bg:"#2a1a1a",fg:"#f87171",dot:"#f87171"},
+  "-":{bg:"#1e293b",fg:"#64748b",dot:"#64748b"},
+};
+const DEF_STATUS = {bg:"#1e293b",fg:"#94a3b8",dot:"#94a3b8"};
+function sc(s){return STATUS_COLORS[s]||DEF_STATUS}
+
+const FIELDS = {
+  contract:[
+    {key:"contractNo",label:"เลขที่สัญญา",type:"text",ph:"เช่น 1/2569",req:1},
+    {key:"egpNo",label:"เลขที่โครงการ (egp)",type:"text",ph:""},
+    {key:"controlNo",label:"เลขคุมสัญญา",type:"text"},
+    {key:"poGfmis",label:"เลขที่ PO (GFMIS)",type:"text"},
+    {key:"signDate",label:"วันที่ลงนาม",type:"text",ph:"เช่น 26/02/2569"},
+    {key:"party",label:"คู่สัญญา",type:"text",ph:"ชื่อบริษัท/หน่วยงาน",wide:1},
+    {key:"taxId",label:"เลขประจำตัวผู้เสียภาษี",type:"text",ph:"13 หลัก"},
+    {key:"project",label:"รายการ/โครงการ",type:"textarea",wide:1},
+    {key:"amount",label:"วงเงินตามสัญญา (บาท)",type:"number",ph:"0.00"},
+    {key:"startDate",label:"ระยะเวลาสัญญา (เริ่มต้น)",type:"text",ph:"เช่น 27/02/2569"},
+    {key:"endDate",label:"ระยะเวลาสัญญา (สิ้นสุด)",type:"text",ph:"เช่น 24/09/2569"},
+    {key:"guaranteeType",label:"ประเภทหลักประกันสัญญา",type:"select",opts:["หนังสือค้ำประกัน","เงินสด","เช็คธนาคาร","พันธบัตร","ยกเว้น"]},
+    {key:"guaranteeAmount",label:"มูลค่าหลักประกัน (บาท)",type:"text",ph:"0.00 หรือ ยกเว้น"},
+    {key:"status",label:"สถานะสัญญา",type:"select",opts:["ดำเนินการตามสัญญา","ตรวจรับแล้ว","เบิกจ่ายแล้ว","ยกเลิกสัญญา","คืนหลักประกัน"]},
+    {key:"note",label:"หมายเหตุ",type:"textarea",wide:1},
+  ],
+  po:[
+    {key:"poNo",label:"เลขที่ใบสั่งซื้อ/จ้าง/เช่า",type:"text",ph:"เช่น ซ.1/2569",req:1},
+    {key:"egpNo",label:"เลขที่โครงการ (egp)",type:"text"},
+    {key:"controlNo",label:"เลขคุมใบสั่ง",type:"text"},
+    {key:"poGfmis",label:"เลขที่ PO (GFMIS)",type:"text"},
+    {key:"issueDate",label:"วันที่ออกใบสั่ง",type:"text",ph:"เช่น 16/10/2568"},
+    {key:"vendor",label:"ผู้ขาย/ผู้รับจ้าง",type:"text",wide:1},
+    {key:"taxId",label:"เลขประจำตัวผู้เสียภาษี",type:"text"},
+    {key:"project",label:"รายการ",type:"textarea",wide:1},
+    {key:"amount",label:"วงเงิน (บาท)",type:"number",ph:"0.00"},
+    {key:"deliveryStart",label:"กำหนดส่งมอบ (เริ่มต้น)",type:"text",ph:"เช่น 01/10/2568"},
+    {key:"deliveryEnd",label:"กำหนดส่งมอบ (สิ้นสุด)",type:"text",ph:"เช่น 30/09/2569"},
+    {key:"status",label:"สถานะ",type:"select",opts:["รอส่งมอบ","ส่งมอบแล้ว","ตรวจรับแล้ว","เบิกจ่ายแล้ว","ยกเลิก"]},
+    {key:"note",label:"หมายเหตุ",type:"textarea",wide:1},
+  ],
+  agreement:[
+    {key:"agreementNo",label:"เลขที่ข้อตกลง",type:"text",ph:"เช่น 1/2569",req:1},
+    {key:"egpNo",label:"เลขที่โครงการ",type:"text"},
+    {key:"controlNo",label:"เลขที่คุมสัญญา",type:"text"},
+    {key:"agreeDate",label:"วันที่ข้อตกลง",type:"text",ph:"เช่น 08/10/2568"},
+    {key:"party",label:"คู่สัญญา",type:"text",wide:1},
+    {key:"taxId",label:"เลขประจำตัวผู้เสียภาษี",type:"text"},
+    {key:"project",label:"รายการ/โครงการ",type:"textarea",wide:1},
+    {key:"amount",label:"วงเงินตามสัญญา (บาท)",type:"number",ph:"0.00"},
+    {key:"startDate",label:"ระยะเวลาสัญญา (เริ่มต้น)",type:"text",ph:"เช่น 01/10/2568"},
+    {key:"endDate",label:"ระยะเวลาสัญญา (สิ้นสุด)",type:"text",ph:"เช่น 31/03/2569"},
+    {key:"guaranteeType",label:"ประเภทหลักประกันสัญญา",type:"select",opts:["หนังสือค้ำประกัน","เงินสด","-","ยกเว้น"]},
+    {key:"guaranteeAmount",label:"มูลค่าหลักประกัน (บาท)",type:"text",ph:"-"},
+    {key:"status",label:"สถานะสัญญา",type:"select",opts:["ดำเนินการ","ส่งมอบแล้ว","ตรวจรับแล้ว","เบิกจ่ายแล้ว","ยกเลิก","-"]},
+    {key:"note",label:"หมายเหตุ",type:"textarea",wide:1},
+  ],
+};
+
+// ═══════════ STATE ═══════════
+let sheetData = null;
+let currentPage = "dashboard";
+let formType = "contract";
+let editMode = null; // null or { sheetType, rowIndex, rawRow }
+let selectedItems = []; // [{sheetType, rowIndex, rawRow, headers}]
+
+// ═══════════ HELPERS ═══════════
+const $ = id => document.getElementById(id);
+const parseMoney = s => { if(!s)return 0; const n=parseFloat(String(s).replace(/,/g,"")); return isNaN(n)?0:n; };
+const fmtMoney = n => n.toLocaleString("th-TH",{minimumFractionDigits:2,maximumFractionDigits:2});
+const esc = s => { const d=document.createElement("div");d.textContent=s;return d.innerHTML; };
+
+// ═══════════ JSONP FETCH ═══════════
+function fetchData() {
+  $("statusText").textContent = "⏳ กำลังดึงข้อมูล...";
+  $("errorBox").classList.add("hidden");
+
+  const cbName = "_cb_" + Date.now();
+  const timeout = setTimeout(() => {
+    cleanup();
+    showError("หมดเวลาเชื่อมต่อ — ลองกดรีเฟรชอีกครั้ง");
+    $("statusText").textContent = "❌ โหลดไม่สำเร็จ";
+  }, 20000);
+
+  function cleanup() {
+    clearTimeout(timeout);
+    delete window[cbName];
+    const el = document.getElementById(cbName);
+    if (el) el.remove();
+  }
+
+  window[cbName] = function(result) {
+    cleanup();
+    if (result && result.success) {
+      sheetData = result.data;
+      const now = new Date();
+      $("statusText").innerHTML = `✅ อัปเดตล่าสุด: ${now.toLocaleTimeString("th-TH")}`;
+      $("errorBox").classList.add("hidden");
+      renderDashboard();
+    } else {
+      showError(result?.error || "ไม่สามารถดึงข้อมูลได้");
+    }
+  };
+
+  const script = document.createElement("script");
+  script.id = cbName;
+  script.src = WEB_APP_URL + "?callback=" + cbName;
+  script.onerror = function() {
+    cleanup();
+    showError("โหลดข้อมูลไม่ได้ — ตรวจสอบ Apps Script URL");
+    $("statusText").textContent = "❌ โหลดไม่สำเร็จ";
+  };
+  document.body.appendChild(script);
+}
+
+function showError(msg) {
+  $("errorBox").textContent = "❌ " + msg;
+  $("errorBox").classList.remove("hidden");
+}
+
+// ═══════════ PAGE NAVIGATION ═══════════
+function showPage(page) {
+  currentPage = page;
+  document.querySelectorAll(".nav-btn").forEach((b, i) => {
+    b.classList.toggle("active", ["dashboard","form","report","script"][i] === page);
+  });
+  ["dashboard","form","report","script"].forEach(p => {
+    $("page-"+p).classList.toggle("hidden", p !== page);
+  });
+  if (page === "form") renderForm();
+  if (page === "report") renderReport();
+  if (page === "script") renderScript();
+  if (page === "dashboard") renderDashboard();
+}
+
+// ═══════════ COMPUTE STATS ═══════════
+function computeStats() {
+  if (!sheetData) return null;
+  const stats = {};
+  let grandTotal = 0, grandCount = 0;
+  for (const t of SHEET_TYPES) {
+    const d = sheetData[t.id];
+    if (!d || !d.rows) { stats[t.id] = {count:0,total:0,statusCounts:{},items:[]}; continue; }
+    const cm = COL_MAP[t.id];
+    let total = 0;
+    const statusCounts = {};
+    const items = [];
+    d.rows.forEach((r, originalIdx) => {
+      if (!(r[cm.project]||"").trim() && !(r[cm.party]||"").trim()) return;
+      const amt = parseMoney(r[cm.amount]);
+      total += amt;
+      const st = (r[cm.status]||"").trim();
+      if (st && st !== "-") statusCounts[st] = (statusCounts[st]||0) + 1;
+      items.push({ no:r[cm.no], date:r[cm.date], party:r[cm.party], project:r[cm.project], amount:amt, status:st, _rowIndex: originalIdx });
+    });
+    stats[t.id] = { count:items.length, total, statusCounts, items };
+    grandTotal += total;
+    grandCount += items.length;
+  }
+  return { byType:stats, grandTotal, grandCount };
+}
+
+// ═══════════ SVG DONUT ═══════════
+function svgDonut(counts, size) {
+  const entries = Object.entries(counts).filter(([,v])=>v>0);
+  const total = entries.reduce((s,[,v])=>s+v,0);
+  if (!total) return `<div style="width:${size}px;height:${size}px;display:flex;align-items:center;justify-content:center;color:#475569;font-size:12px">—</div>`;
+  let cum = 0;
+  const r=36, cx=50, cy=50;
+  let paths = "";
+  for (const [status, count] of entries) {
+    const angle = (count/total)*360;
+    const s1 = cum, s2 = cum + angle; cum += angle;
+    const st = sc(status);
+    const la = angle > 180 ? 1 : 0;
+    const a1 = (s1-90)*Math.PI/180, a2 = (s2-90)*Math.PI/180;
+    const x1=cx+r*Math.cos(a1), y1=cy+r*Math.sin(a1);
+    const x2=cx+r*Math.cos(a2), y2=cy+r*Math.sin(a2);
+    paths += `<path d="M ${x1} ${y1} A ${r} ${r} 0 ${la} 1 ${x2} ${y2}" fill="none" stroke="${st.dot}" stroke-width="12"/>`;
+  }
+  return `<div style="position:relative;width:${size}px;height:${size}px">
+    <svg viewBox="0 0 100 100" width="${size}" height="${size}">${paths}</svg>
+    <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+      <span style="font-size:22px;font-weight:700;color:#f1f5f9;line-height:1">${total}</span>
+      <span style="font-size:9px;color:#64748b;margin-top:2px">รายการ</span>
+    </div></div>`;
+}
+
+// ═══════════ RENDER DASHBOARD ═══════════
+function renderDashboard() {
+  const el = $("page-dashboard");
+  const stats = computeStats();
+  if (!stats) { el.innerHTML = `<div style="text-align:center;padding:60px 20px;color:#475569"><div style="font-size:48px;margin-bottom:16px">📊</div><div style="font-size:16px;font-weight:500;color:#94a3b8">กำลังโหลดข้อมูล...</div></div>`; return; }
+
+  let html = "";
+  // Grand total
+  html += `<div class="summary-grid">
+    <div class="card summary-grand fade-up" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px">
+      <div>
+        <div style="font-size:12px;color:#64748b;margin-bottom:4px">วงเงินรวมทั้งหมด</div>
+        <div style="font-size:28px;font-weight:700;color:#f1f5f9;letter-spacing:-0.02em">฿${fmtMoney(stats.grandTotal)}</div>
+        <div style="font-size:12px;color:#64748b;margin-top:4px">${stats.grandCount} รายการ</div>
+      </div>
+      <div style="display:flex;gap:20px;flex-wrap:wrap">
+        ${SHEET_TYPES.map(t=>`<div style="text-align:center"><div style="font-size:22px;font-weight:700;color:#e2e8f0">${stats.byType[t.id].count}</div><div style="font-size:11px;color:#64748b">${t.icon} ${t.label}</div></div>`).join("")}
+      </div>
+    </div>`;
+
+  // Per-type cards
+  for (const t of SHEET_TYPES) {
+    const st = stats.byType[t.id];
+    const maxAmt = Math.max(...st.items.map(i=>i.amount), 1);
+    const bars = st.items.map(item => {
+      const h = maxAmt > 0 ? Math.max(4, (item.amount/maxAmt)*52) : 4;
+      const c = sc(item.status).dot;
+      return `<div class="bar" title="${esc(item.no)}: ฿${fmtMoney(item.amount)}" style="height:${h}px;background:linear-gradient(180deg,${c},${c}55)"></div>`;
+    }).join("");
+
+    html += `<div class="card fade-up">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+        <div><div style="font-size:11px;color:#64748b">${t.icon} ${t.label}</div>
+          <div style="font-size:20px;font-weight:700;color:#f1f5f9;margin-top:4px">${st.count} <span style="font-size:12px;font-weight:400;color:#64748b">รายการ</span></div></div>
+        ${svgDonut(st.statusCounts, 64)}
+      </div>
+      <div style="font-size:12px;color:#94a3b8;margin-bottom:10px">฿${fmtMoney(st.total)}</div>
+      <div class="bar-chart">${bars}</div>
+    </div>`;
+  }
+  html += `</div>`;
+
+  // Status legend
+  const allStatus = {};
+  SHEET_TYPES.forEach(t => Object.entries(stats.byType[t.id].statusCounts).forEach(([k,v]) => allStatus[k]=(allStatus[k]||0)+v));
+  html += `<div class="card fade-up" style="margin-bottom:20px;padding:14px 18px">
+    <div style="font-size:12px;color:#64748b;margin-bottom:10px">สถานะทั้งหมด</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px">
+      ${Object.entries(allStatus).map(([s,c])=>{const st=sc(s);return `<span class="status-badge" style="background:${st.bg};color:${st.fg}"><span class="status-dot" style="background:${st.dot}"></span>${esc(s)} (${c})</span>`;}).join("")}
+    </div></div>`;
+
+  // Tables
+  for (const t of SHEET_TYPES) {
+    const st = stats.byType[t.id];
+    if (!st.count) continue;
+    html += `<div class="card fade-up" style="margin-bottom:20px;padding:0;overflow:hidden">
+      <div style="padding:14px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+        <div style="font-size:14px;font-weight:600;color:#f1f5f9">${t.icon} ${t.label}</div>
+        <div style="font-size:11px;color:#475569">${st.count} รายการ • ฿${fmtMoney(st.total)}</div>
+      </div>
+      <div style="overflow-x:auto"><table>
+        <thead><tr><th>เลขที่</th><th>วันที่</th><th>คู่สัญญา/ผู้ขาย</th><th>รายการ</th><th style="text-align:right">วงเงิน (บาท)</th><th>สถานะ</th><th style="width:100px"></th></tr></thead>
+        <tbody>${st.items.map((item,idx)=>{
+          const s=sc(item.status);
+          const ri = item._rowIndex;
+          return `<tr class="clickable-row" onclick="showDetail('${t.id}',${ri})">
+            <td style="font-weight:600;color:#e2e8f0;white-space:nowrap">${esc(item.no)}</td>
+            <td style="color:#94a3b8;white-space:nowrap">${esc(item.date||"")}</td>
+            <td style="color:#cbd5e1;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(item.party||"")}</td>
+            <td style="color:#94a3b8;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(item.project||"")}</td>
+            <td class="mono" style="text-align:right;color:#e2e8f0;white-space:nowrap">${fmtMoney(item.amount)}</td>
+            <td>${item.status?`<span class="status-badge" style="background:${s.bg};color:${s.fg}"><span class="status-dot" style="background:${s.dot}"></span>${esc(item.status)}</span>`:""}</td>
+            <td style="white-space:nowrap" onclick="event.stopPropagation()"><button onclick="editRow('${t.id}',${ri})" style="background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.2);color:#38bdf8;font-size:11px;padding:4px 10px;border-radius:6px;cursor:pointer;font-family:inherit">✏️ แก้ไข</button></td>
+          </tr>`;}).join("")}</tbody>
+      </table></div></div>`;
+  }
+  el.innerHTML = html;
+}
+
+// ═══════════ DETAIL MODAL ═══════════
+function showDetail(sheetType, rowIndex) {
+  if (!sheetData || !sheetData[sheetType]) return;
+  const headers = sheetData[sheetType].headers;
+  const rawRow = sheetData[sheetType].rows[rowIndex];
+  if (!rawRow) return;
+  const typeInfo = SHEET_TYPES.find(t=>t.id===sheetType);
+  const cm = COL_MAP[sheetType];
+  const st = sc((rawRow[cm.status]||"").trim());
+
+  let rows = "";
+  for (let i = 0; i < headers.length; i++) {
+    const label = headers[i] || `คอลัมน์ ${i+1}`;
+    let val = rawRow[i] || "";
+    // Format money fields
+    if (i === cm.amount && val) {
+      const num = parseMoney(val);
+      if (num > 0) val = "฿" + fmtMoney(num);
+    }
+    rows += `<div class="detail-row">
+      <div class="detail-label">${esc(label)}</div>
+      <div class="detail-value">${esc(val)}</div>
+    </div>`;
+  }
+
+  $("detailModal").innerHTML = `<div class="modal-overlay" onclick="if(event.target===this)closeDetail()">
+    <div class="modal-box">
+      <div style="padding:18px 22px;border-bottom:1px solid rgba(148,163,184,0.1);display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-size:16px;font-weight:700;color:#f1f5f9">${typeInfo.icon} ${esc(rawRow[0])}</div>
+          <div style="font-size:12px;color:#64748b;margin-top:2px">${typeInfo.label}</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          ${(rawRow[cm.status]||"").trim()?`<span class="status-badge" style="background:${st.bg};color:${st.fg}"><span class="status-dot" style="background:${st.dot}"></span>${esc(rawRow[cm.status])}</span>`:""}
+          <button onclick="closeDetail()" style="background:rgba(148,163,184,0.1);border:1px solid rgba(148,163,184,0.15);color:#94a3b8;font-size:18px;width:32px;height:32px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">×</button>
+        </div>
+      </div>
+      <div style="padding:16px 22px">${rows}</div>
+      <div style="padding:14px 22px;border-top:1px solid rgba(148,163,184,0.06);display:flex;gap:8px;justify-content:flex-end">
+        <button onclick="closeDetail();editRow('${sheetType}',${rowIndex})" class="btn-primary" style="padding:8px 18px;font-size:13px">✏️ แก้ไข</button>
+        <button onclick="closeDetail()" class="btn-ghost" style="padding:8px 18px;font-size:13px">ปิด</button>
+      </div>
+    </div>
+  </div>`;
+  $("detailModal").classList.remove("hidden");
+}
+
+function closeDetail() {
+  $("detailModal").classList.add("hidden");
+  $("detailModal").innerHTML = "";
+}
+
+// ═══════════ EDIT ROW ═══════════
+function editRow(sheetType, rowIndex) {
+  if (!sheetData || !sheetData[sheetType]) return;
+  const rawRow = sheetData[sheetType].rows[rowIndex];
+  if (!rawRow) return;
+  editMode = { sheetType, rowIndex, rawRow };
+  formType = sheetType;
+  showPage("form");
+}
+
+// ═══════════ RENDER FORM ═══════════
+function renderForm() {
+  const el = $("page-form");
+  const fields = FIELDS[formType];
+  const typeInfo = SHEET_TYPES.find(t=>t.id===formType);
+  const isEdit = editMode && editMode.sheetType === formType;
+
+  let tabs = `<div style="display:flex;gap:6px;margin-bottom:16px">`;
+  for (const t of SHEET_TYPES) {
+    tabs += `<button class="tab-btn ${t.id===formType?"active":""}" onclick="editMode=null;formType='${t.id}';renderForm()">${t.icon} ${t.label}</button>`;
+  }
+  tabs += `</div>`;
+
+  // Edit mode banner
+  let editBanner = "";
+  if (isEdit) {
+    editBanner = `<div style="margin-bottom:14px;padding:10px 14px;border-radius:10px;font-size:13px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.25);color:#fbbf24;display:flex;justify-content:space-between;align-items:center">
+      <span>✏️ กำลังแก้ไข: <b>${esc(editMode.rawRow[0])}</b></span>
+      <button onclick="editMode=null;renderForm()" style="background:rgba(251,191,36,0.15);border:1px solid rgba(251,191,36,0.3);color:#fbbf24;font-size:11px;padding:4px 12px;border-radius:6px;cursor:pointer;font-family:inherit">✕ ยกเลิกแก้ไข</button>
+    </div>`;
+  }
+
+  let formFields = `<div class="grid-2">`;
+  for (let i = 0; i < fields.length; i++) {
+    const f = fields[i];
+    const cls = f.wide ? ' class="wide"' : '';
+    // Pre-fill value from raw row if editing
+    const val = isEdit ? (editMode.rawRow[i] || "") : "";
+    const escapedVal = esc(val);
+
+    formFields += `<div${cls}><label style="display:block;font-size:12px;font-weight:500;color:#64748b;margin-bottom:5px">${esc(f.label)}${f.req?'<span style="color:#f87171">*</span>':''}</label>`;
+    if (f.type === "textarea") {
+      formFields += `<textarea class="inp" id="f_${f.key}" rows="3" placeholder="${esc(f.ph||"")}">${escapedVal}</textarea>`;
+    } else if (f.type === "select") {
+      formFields += `<select class="inp" id="f_${f.key}"><option value="">-- เลือก --</option>${(f.opts||[]).map(o=>`<option value="${esc(o)}" ${o===val?"selected":""}>${esc(o)}</option>`).join("")}</select>`;
+    } else {
+      formFields += `<input class="inp" type="${f.type}" id="f_${f.key}" placeholder="${esc(f.ph||"")}" value="${escapedVal}">`;
+    }
+    formFields += `</div>`;
+  }
+  formFields += `</div>`;
+
+  const submitLabel = isEdit ? "💾 อัปเดตข้อมูล" : "💾 บันทึกลง Google Sheet";
+  const submitColor = isEdit ? "linear-gradient(135deg,#f59e0b,#ef4444)" : "linear-gradient(135deg,#0ea5e9,#6366f1)";
+
+  el.innerHTML = `<div class="fade-up">${tabs}${editBanner}
+    <div class="card">
+      <h3 style="margin:0 0 16px;font-size:15px;font-weight:600;color:#f1f5f9;padding-bottom:12px;border-bottom:1px solid var(--border)">${typeInfo.icon} ${isEdit?"แก้ไข":"เพิ่ม"}${typeInfo.label}</h3>
+      ${formFields}
+      <div style="display:flex;gap:10px;margin-top:20px">
+        <button class="btn-primary" style="flex:2;background:${submitColor}" onclick="submitForm()">${submitLabel}</button>
+        <button class="btn-ghost" style="flex:1" onclick="editMode=null;clearForm()">🗑️ ล้าง</button>
+      </div>
+      <div id="formStatus"></div>
+    </div></div>`;
+}
+
+function clearForm() {
+  editMode = null;
+  FIELDS[formType].forEach(f => { const el=$("f_"+f.key); if(el) el.value=""; });
+  $("formStatus").innerHTML = "";
+}
+
+async function submitForm() {
+  const fields = FIELDS[formType];
+  const values = fields.map(f => { const el=$("f_"+f.key); return el?el.value:""; });
+  const isEdit = editMode && editMode.sheetType === formType;
+
+  $("formStatus").innerHTML = `<div style="margin-top:14px;padding:10px 14px;border-radius:10px;font-size:13px;color:#38bdf8;background:rgba(56,189,248,0.08);border:1px solid rgba(56,189,248,0.2)">⏳ ${isEdit?"กำลังอัปเดต...":"กำลังบันทึก..."}</div>`;
+  try {
+    const payload = isEdit
+      ? { action:"update", sheetType:formType, rowIndex: editMode.rowIndex + 2, values }
+      : { action:"append", sheetType:formType, values };
+    await fetch(WEB_APP_URL, {
+      method: "POST",
+      body: JSON.stringify(payload),
+      mode: "no-cors",
+    });
+    $("formStatus").innerHTML = `<div class="success-box">✅ ${isEdit?"อัปเดตสำเร็จ!":"ส่งข้อมูลแล้ว!"} กดรีเฟรชเพื่อดูข้อมูลใหม่</div>`;
+    editMode = null;
+    FIELDS[formType].forEach(f => { const el=$("f_"+f.key); if(el) el.value=""; });
+  } catch(e) {
+    $("formStatus").innerHTML = `<div class="error-box" style="margin-top:14px">❌ ${esc(e.message)}</div>`;
+  }
+}
+
+// ═══════════ RENDER SETTINGS ═══════════
+function renderScript() {
+  $("page-script").innerHTML = `<div class="fade-up">
+    <div class="card" style="margin-bottom:16px">
+      <h3 style="margin:0 0 12px;font-size:15px;font-weight:600;color:#fbbf24">⚙️ วิธีตั้งค่า Apps Script</h3>
+      <div style="font-size:13px;line-height:2;color:#cbd5e1">
+        1️⃣ คัดลอกโค้ดด้านล่าง<br>
+        2️⃣ เปิด Google Sheet → <b>Extensions</b> → <b>Apps Script</b><br>
+        3️⃣ ลบโค้ดเดิม วางโค้ดใหม่<br>
+        4️⃣ <b>Deploy</b> → <b>New deployment</b> → Web app<br>
+        5️⃣ Execute as = <b>Me</b> | Who has access = <b>Anyone</b><br>
+        6️⃣ คัดลอก URL ไปแก้ในไฟล์ index.html ตรง <code>WEB_APP_URL</code><br>
+        <span style="font-size:11px;color:#f87171">⚠️ ต้อง New deployment ทุกครั้งที่แก้โค้ด</span>
+      </div>
+    </div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="padding:12px 18px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border)">
+        <span style="font-size:13px;font-weight:600;color:#a5f3fc">📄 Apps Script v3</span>
+        <button onclick="navigator.clipboard.writeText(SCRIPT_CODE);this.textContent='✅ คัดลอกแล้ว!';setTimeout(()=>this.textContent='📋 คัดลอก',2000)" style="background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.2);color:#38bdf8;font-size:12px;padding:5px 14px;border-radius:6px;cursor:pointer;font-family:inherit">📋 คัดลอก</button>
+      </div>
+      <pre class="mono" style="margin:0;padding:16px;font-size:11.5px;line-height:1.7;color:#a5f3fc;background:rgba(0,0,0,0.3);overflow:auto;max-height:500px;white-space:pre-wrap;word-break:break-word">${esc(SCRIPT_CODE)}</pre>
+    </div></div>`;
+}
+
+const SCRIPT_CODE = `var SHEET_ID = "1kGSQKzbaZQ_CW8vw4qBpEmK4g44JzrGPOFGcobCN1hY";
+
+var SHEET_CONFIG = {
+  contract:  { name: "เลขที่สัญญา" },
+  po:        { name: "เลขที่ใบสั่งซื้อ/จ้าง/เช่า" },
+  agreement: { name: "เลขที่ข้อตกลง" }
+};
+
+function doGet(e) {
+  var callback = (e && e.parameter && e.parameter.callback) ? e.parameter.callback : null;
+  try {
+    var ss = SpreadsheetApp.openById(SHEET_ID);
+    var result = {};
+    var keys = Object.keys(SHEET_CONFIG);
+    for (var i = 0; i < keys.length; i++) {
+      var key = keys[i];
+      var config = SHEET_CONFIG[key];
+      var sheet = ss.getSheetByName(config.name);
+      if (!sheet || sheet.getLastRow() <= 1) { result[key] = { headers: [], rows: [] }; continue; }
+      var data = sheet.getDataRange().getValues();
+      var headers = [];
+      for (var h = 0; h < data[0].length; h++) headers.push(String(data[0][h]).replace(/\\n/g, " ").trim());
+      var rows = [];
+      for (var r = 1; r < data.length; r++) {
+        var row = [];
+        for (var c = 0; c < data[r].length; c++) {
+          var cell = data[r][c];
+          if (cell instanceof Date) row.push(("0"+cell.getDate()).slice(-2)+"/"+("0"+(cell.getMonth()+1)).slice(-2)+"/"+cell.getFullYear());
+          else row.push(String(cell));
+        }
+        rows.push(row);
+      }
+      result[key] = { headers: headers, rows: rows };
+    }
+    var jsonStr = JSON.stringify({ success: true, data: result });
+    if (callback) return ContentService.createTextOutput(callback+"("+jsonStr+")").setMimeType(ContentService.MimeType.JAVASCRIPT);
+    return ContentService.createTextOutput(jsonStr).setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    var errStr = JSON.stringify({ success: false, error: err.toString() });
+    if (callback) return ContentService.createTextOutput(callback+"("+errStr+")").setMimeType(ContentService.MimeType.JAVASCRIPT);
+    return ContentService.createTextOutput(errStr).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function doPost(e) {
+  try {
+    var data = JSON.parse(e.postData.contents);
+    var action = data.action || "append";
+    if (!SHEET_CONFIG[data.sheetType]) return jsonResp({ success: false, error: "ไม่พบประเภท" });
+    var ss = SpreadsheetApp.openById(SHEET_ID);
+    var sheet = ss.getSheetByName(SHEET_CONFIG[data.sheetType].name);
+    if (!sheet) return jsonResp({ success: false, error: "ไม่พบ sheet" });
+
+    if (action === "update" && data.rowIndex) {
+      // อัปเดตแถวเดิม (rowIndex = row number in sheet, 1-indexed)
+      var row = data.rowIndex;
+      var vals = data.values;
+      for (var i = 0; i < vals.length; i++) {
+        sheet.getRange(row, i + 1).setValue(vals[i]);
+      }
+      return jsonResp({ success: true, message: "อัปเดตสำเร็จ แถว " + row });
+    } else {
+      // เพิ่มแถวใหม่
+      sheet.appendRow(data.values);
+      return jsonResp({ success: true, message: "บันทึกสำเร็จ", row: sheet.getLastRow() });
+    }
+  } catch (err) { return jsonResp({ success: false, error: err.toString() }); }
+}
+
+function jsonResp(obj) { return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON); }`;
+
+// ═══════════ REPORT PAGE (สขร.1) ═══════════
+function renderReport() {
+  const el = $("page-report");
+  const stats = computeStats();
+  if (!stats) { el.innerHTML = `<div style="text-align:center;padding:60px 20px;color:#475569"><div style="font-size:48px;margin-bottom:16px">📥</div><div style="font-size:14px">กดรีเฟรชเพื่อโหลดข้อมูลก่อน</div></div>`; return; }
+
+  let html = `<div class="fade-up">
+    <div class="card" style="margin-bottom:16px">
+      <h3 style="margin:0 0 6px;font-size:16px;font-weight:700;color:#f1f5f9">📥 ออกรายงาน สขร.1</h3>
+      <p style="margin:0;font-size:12.5px;color:#64748b">เลือกรายการที่ต้องการออกรายงาน แล้วกดปุ่มด้านล่าง</p>
+    </div>
+
+    <!-- Month input -->
+    <div class="card" style="margin-bottom:16px;padding:14px 18px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+      <label style="font-size:13px;color:#94a3b8;white-space:nowrap">📅 เดือนที่รายงาน:</label>
+      <input class="inp" id="reportMonth" type="text" placeholder="เช่น มีนาคม 2569" style="max-width:250px;font-size:14px">
+    </div>`;
+
+  // Tables with checkboxes for each type
+  for (const t of SHEET_TYPES) {
+    const st = stats.byType[t.id];
+    if (!st.count) continue;
+    html += `<div class="card fade-up" style="margin-bottom:16px;padding:0;overflow:hidden">
+      <div style="padding:12px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+        <div style="font-size:14px;font-weight:600;color:#f1f5f9">${t.icon} ${t.label} <span style="font-size:12px;font-weight:400;color:#64748b">(${st.count} รายการ)</span></div>
+        <label style="font-size:12px;color:#38bdf8;cursor:pointer;display:flex;align-items:center;gap:5px">
+          <input type="checkbox" class="chk" onchange="toggleAllReport('${t.id}',this.checked)"> เลือกทั้งหมด
+        </label>
+      </div>
+      <div style="overflow-x:auto"><table>
+        <thead><tr><th style="width:36px"></th><th>เลขที่</th><th>คู่สัญญา/ผู้ขาย</th><th>รายการ</th><th style="text-align:right">วงเงิน</th><th>สถานะ</th></tr></thead>
+        <tbody>${st.items.map(item=>{
+          const s = sc(item.status);
+          const ri = item._rowIndex;
+          const isChecked = selectedItems.some(x=>x.sheetType===t.id && x.rowIndex===ri);
+          return `<tr>
+            <td><input type="checkbox" class="chk" ${isChecked?"checked":""} onchange="toggleItemReport('${t.id}',${ri},this.checked)"></td>
+            <td style="font-weight:600;color:#e2e8f0;white-space:nowrap">${esc(item.no)}</td>
+            <td style="color:#cbd5e1;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(item.party||"")}</td>
+            <td style="color:#94a3b8;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(item.project||"")}</td>
+            <td class="mono" style="text-align:right;color:#e2e8f0;white-space:nowrap">${fmtMoney(item.amount)}</td>
+            <td>${item.status?`<span class="status-badge" style="background:${s.bg};color:${s.fg}"><span class="status-dot" style="background:${s.dot}"></span>${esc(item.status)}</span>`:""}</td>
+          </tr>`;}).join("")}</tbody>
+      </table></div></div>`;
+  }
+
+  // Summary + export button
+  html += `<div id="reportSummary"></div>
+    <div style="display:flex;gap:10px;margin-top:8px">
+      <button class="btn-primary" style="flex:1;padding:14px" onclick="exportReport()">📥 ดาวน์โหลด สขร.1 (Excel)</button>
+      <button class="btn-ghost" style="padding:14px" onclick="selectedItems=[];renderReport()">🗑️ ล้างการเลือก</button>
+    </div>
+    <div id="reportStatus" style="margin-top:14px"></div>
+  </div>`;
+
+  el.innerHTML = html;
+  updateReportSummary();
+}
+
+function toggleItemReport(sheetType, rowIndex, checked) {
+  if (checked) {
+    if (!selectedItems.some(x=>x.sheetType===sheetType && x.rowIndex===rowIndex)) {
+      selectedItems.push({ sheetType, rowIndex, rawRow: sheetData[sheetType].rows[rowIndex], headers: sheetData[sheetType].headers });
+    }
+  } else {
+    selectedItems = selectedItems.filter(x=>!(x.sheetType===sheetType && x.rowIndex===rowIndex));
+  }
+  updateReportSummary();
+}
+
+function toggleAllReport(sheetType, checked) {
+  const stats = computeStats();
+  if (!stats) return;
+  const items = stats.byType[sheetType].items;
+  if (checked) {
+    items.forEach(item => {
+      if (!selectedItems.some(x=>x.sheetType===sheetType && x.rowIndex===item._rowIndex)) {
+        selectedItems.push({ sheetType, rowIndex: item._rowIndex, rawRow: sheetData[sheetType].rows[item._rowIndex], headers: sheetData[sheetType].headers });
+      }
+    });
+  } else {
+    selectedItems = selectedItems.filter(x=>x.sheetType!==sheetType);
+  }
+  renderReport();
+}
+
+function updateReportSummary() {
+  const el = $("reportSummary");
+  if (!el) return;
+  if (!selectedItems.length) {
+    el.innerHTML = `<div style="padding:14px 18px;border-radius:10px;background:rgba(148,163,184,0.05);border:1px solid var(--border);font-size:13px;color:#475569;text-align:center">ยังไม่ได้เลือกรายการ — กดเลือกจากตารางด้านบน</div>`;
+    return;
+  }
+  const totalAmt = selectedItems.reduce((s,x) => s + parseMoney(x.rawRow[COL_MAP[x.sheetType].amount]), 0);
+  el.innerHTML = `<div style="padding:14px 18px;border-radius:10px;background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.15);font-size:13px;color:#e2e8f0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+    <span>✅ เลือกแล้ว <b style="color:#38bdf8">${selectedItems.length}</b> รายการ</span>
+    <span>รวมวงเงิน <b class="mono" style="color:#fbbf24">฿${fmtMoney(totalAmt)}</b></span>
+  </div>`;
+}
+
+// ═══════════ EXPORT EXCEL สขร.1 ═══════════
+async function exportReport() {
+  if (!selectedItems.length) {
+    $("reportStatus").innerHTML = `<div class="error-box">❌ กรุณาเลือกรายการก่อน</div>`;
+    return;
+  }
+  const monthName = ($("reportMonth")||{}).value || "___";
+  if (!monthName || monthName === "___") {
+    $("reportStatus").innerHTML = `<div class="error-box">❌ กรุณากรอกชื่อเดือนก่อน</div>`;
+    return;
+  }
+  $("reportStatus").innerHTML = `<div style="padding:10px 14px;border-radius:10px;font-size:13px;color:#38bdf8;background:rgba(56,189,248,0.08);border:1px solid rgba(56,189,248,0.2)">⏳ กำลังสร้างไฟล์...</div>`;
+
+  const wb = new ExcelJS.Workbook();
+  const thin = {style:'thin',color:{argb:'FF000000'}};
+  const border = {top:thin,bottom:thin,left:thin,right:thin};
+  const fontTH = {name:'TH SarabunPSK',size:16};
+  const fontTHBold = {name:'TH SarabunPSK',size:16,bold:true};
+  const centerWrap = {horizontal:'center',vertical:'middle',wrapText:true};
+  const leftWrap = {vertical:'middle',wrapText:true};
+
+  // ═══ SHEET 1: สรุปผล สขร.1 ═══
+  const ws1 = wb.addWorksheet("สขร.1 " + monthName.slice(0,10));
+  ws1.columns = [
+    {width:6},{width:38},{width:16},{width:14},{width:14},
+    {width:10},{width:14},{width:10},{width:10},{width:14},{width:14},
+    {width:22},{width:28},{width:20}
+  ];
+
+  // Title
+  ws1.mergeCells('A1:M1');
+  const r1 = ws1.getCell('A1');
+  r1.value = "สรุปผลการดำเนินการจัดซื้อจัดจ้างในรอบเดือน" + monthName;
+  r1.font = fontTHBold; r1.alignment = {horizontal:'center'};
+
+  ws1.mergeCells('A2:M2');
+  const r2 = ws1.getCell('A2');
+  r2.value = "สำนักงานเศรษฐกิจการเกษตร ศูนย์ข้อมูลเกษตรแห่งชาติ";
+  r2.font = fontTHBold; r2.alignment = {horizontal:'center'};
+
+  // Header row 4
+  const hdr = ['ลำดับ','งานจัดซื้อจัดจ้าง','วงเงินที่จะซื้อหรือจ้าง','ราคากลาง','วิธีซื้อ/จ้าง',
+    'รายชื่อผู้เสนอราคาและราคาที่เสนอ','','','ผู้ได้รับการจัดเลือกและราคาที่ตกลงซื้อหรือจ้าง','','',
+    'เหตุผลที่คัดเลือกโดยสรุป','เลขที่และวันที่ของสัญญาหรือข้อตกลงในการซื้อหรือจ้าง','เลขที่โครงการ'];
+  const hdrRow = ws1.getRow(4);
+  hdr.forEach((v,i) => { const c = hdrRow.getCell(i+1); c.value = v; c.font = fontTHBold; c.alignment = centerWrap; c.border = border; });
+  ws1.mergeCells('F4:H4'); ws1.mergeCells('I4:K4');
+  hdrRow.height = 42;
+
+  // Data rows
+  let row = 5;
+  selectedItems.forEach((sel, idx) => {
+    const cm = COL_MAP[sel.sheetType];
+    const d = sel.rawRow;
+    const typeLabel = sel.sheetType==='contract'?'สัญญา':(sel.sheetType==='po'?'ใบสั่งจ้าง':'ข้อตกลง');
+
+    // Row 1 of record
+    const r1 = ws1.getRow(row);
+    r1.getCell(1).value = idx+1;
+    r1.getCell(2).value = d[cm.project]||"";
+    r1.getCell(3).value = parseMoney(d[cm.amount]);
+    r1.getCell(3).numFmt = '#,##0.00';
+    r1.getCell(4).value = parseMoney(d[cm.amount]);
+    r1.getCell(4).numFmt = '#,##0.00';
+    r1.getCell(5).value = "เฉพาะเจาะจง";
+    r1.getCell(6).value = d[cm.party]||"";
+    r1.getCell(9).value = d[cm.party]||"";
+    r1.getCell(12).value = "เป็นผู้มีคุณสมบัติตรงตามเงื่อนไขที่กำหนด";
+    r1.getCell(13).value = typeLabel + " เลขที่ " + (d[0]||"");
+    r1.getCell(14).value = d[1]||""; // egp
+    for(let c=1;c<=14;c++){r1.getCell(c).font=fontTH;r1.getCell(c).alignment=leftWrap;r1.getCell(c).border=border;}
+    ws1.mergeCells(row,6,row,8);
+    ws1.mergeCells(row,9,row,11);
+    r1.height = 33;
+
+    // Row 2 of record (price detail)
+    row++;
+    const r2 = ws1.getRow(row);
+    r2.getCell(6).value = "เสนอราคา";
+    r2.getCell(7).value = parseMoney(d[cm.amount]);
+    r2.getCell(7).numFmt = '#,##0.00';
+    r2.getCell(8).value = "บาท";
+    r2.getCell(9).value = "เสนอราคา";
+    r2.getCell(10).value = parseMoney(d[cm.amount]);
+    r2.getCell(10).numFmt = '#,##0.00';
+    r2.getCell(11).value = "บาท";
+    r2.getCell(13).value = d[cm.date]||"";
+    for(let c=1;c<=14;c++){r2.getCell(c).font=fontTH;r2.getCell(c).alignment=leftWrap;r2.getCell(c).border=border;}
+    r2.height = 20;
+    row++;
+  });
+
+  // ═══ SHEET 2: สาระสำคัญ ═══
+  const ws2 = wb.addWorksheet("สาระสำคัญ " + monthName.slice(0,10));
+  ws2.columns = [{width:8},{width:28},{width:18},{width:10},{width:10},{width:18},{width:10},{width:22},{width:10},{width:14},{width:14},{width:18},{width:22}];
+
+  let r = 1;
+  selectedItems.forEach((sel) => {
+    const cm = COL_MAP[sel.sheetType];
+    const d = sel.rawRow;
+    const h = sel.headers;
+    const typeLabel = sel.sheetType==='contract'?'สัญญา เลขที่':(sel.sheetType==='po'?'ใบสั่งจ้าง เลขที่':'ข้อตกลง เลขที่');
+    // Column mapping for agreement is different
+    const egpIdx = sel.sheetType==='agreement'?1:1;
+    const taxIdx = sel.sheetType==='agreement'?5:6;
+    const controlIdx = sel.sheetType==='agreement'?2:2;
+
+    const setCell = (row,col,val,bold) => {
+      const c = ws2.getCell(row,col);
+      c.value = val;
+      c.font = bold ? fontTHBold : fontTH;
+      c.alignment = leftWrap;
+    };
+
+    setCell(r,1,"ข้อมูลสาระสำคัญในสัญญา",true);
+    r++;
+    setCell(r,1,1); setCell(r,2,"หน่วยงาน"); setCell(r,3,"ศูนย์ข้อมูลเกษตรแห่งชาติ สำนักงานเศรษฐกิจการเกษตร");
+    r++;
+    setCell(r,1,2); setCell(r,2,"เลขที่โครงการ"); setCell(r,3,d[egpIdx]||"");
+    r++;
+    setCell(r,1,3); setCell(r,2,"ชื่อโครงการ"); setCell(r,3,d[cm.project]||"");
+    r++;
+    setCell(r,1,4); setCell(r,2,"งบประมาณ"); setCell(r,3,"*"); setCell(r,4,"บาท");
+    r++;
+    setCell(r,1,5); setCell(r,2,"ราคากลาง");
+    const c6 = ws2.getCell(r,3); c6.value = parseMoney(d[cm.amount]); c6.numFmt='#,##0.00'; c6.font=fontTH;
+    setCell(r,4,"บาท");
+    r++;
+    setCell(r,1,6); setCell(r,2,"รายชื่อผู้เสนอราคา มีดังนี้");
+    r++;
+    // Sub-header
+    setCell(r,1,"ลำดับ",true); setCell(r,2,"รายการพิจารณา",true); setCell(r,5,"เลขประจำตัวผู้เสียภาษีอากร",true); setCell(r,7,"รายชื่อผู้เสนอราคา",true); setCell(r,11,"ราคาที่เสนอ",true);
+    r++;
+    setCell(r,1,1); setCell(r,2,d[cm.project]||""); setCell(r,5,d[taxIdx]||""); setCell(r,7,d[cm.party]||"");
+    const c11 = ws2.getCell(r,11); c11.value = parseMoney(d[cm.amount]); c11.numFmt='#,##0.00'; c11.font=fontTH;
+    r += 4; // blank rows
+
+    setCell(r,1,7); setCell(r,2,"ผู้ที่ได้รับการคัดเลือกได้แก่");
+    r++;
+    setCell(r,1,"ลำดับ",true); setCell(r,2,"เลขประจำตัวผู้เสียภาษีอากร",true); setCell(r,3,"ชื่อผู้ขาย",true);
+    setCell(r,7,"เลขคุมสัญญาในระบบ e-GP",true); setCell(r,8,typeLabel.split(" ")[0]+" เลขที่",true);
+    setCell(r,9,"วันที่ทำสัญญา/ใบสั่ง",true); setCell(r,10,"จำนวนเงิน",true); setCell(r,11,"สถานะสัญญา",true); setCell(r,12,"เหตุผลที่คัดเลือก",true);
+    r += 2;
+    setCell(r,1,1); setCell(r,2,d[taxIdx]||""); setCell(r,3,d[cm.party]||"");
+    setCell(r,7,d[controlIdx]||""); setCell(r,8,d[0]||""); setCell(r,9,d[cm.date]||"");
+    const c10 = ws2.getCell(r,10); c10.value = parseMoney(d[cm.amount]); c10.numFmt='#,##0.00'; c10.font=fontTH;
+    setCell(r,11,d[cm.status]||""); setCell(r,12,"เป็นผู้มีคุณสมบัติตรงตามเงื่อนไขที่กำหนด");
+    r += 7; // spacing before next record
+  });
+
+  // ─── Download ───
+  const buf = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `สขร1_${monthName.replace(/\s/g,'')}.xlsx`;
+  a.click();
+  URL.revokeObjectURL(url);
+  $("reportStatus").innerHTML = `<div class="success-box">✅ ดาวน์โหลดสำเร็จ! — สขร1_${esc(monthName)}.xlsx</div>`;
+}
+
+// ═══════════ INIT ═══════════
+fetchData();
+</script>
+</body>
+</html>
