@@ -826,40 +826,47 @@ async function exportReport() {
     const d = sel.rawRow;
     const typeLabel = sel.sheetType==='contract'?'สัญญา':(sel.sheetType==='po'?'ใบสั่งจ้าง':'ข้อตกลง');
 
-    // Row 1 of record
     const r1 = ws1.getRow(row);
-    r1.getCell(1).value = idx+1;
-    r1.getCell(2).value = d[cm.project]||"";
-    r1.getCell(3).value = parseMoney(d[cm.budget]);
-    r1.getCell(3).numFmt = '#,##0.00';
-    r1.getCell(4).value = parseMoney(d[cm.medianPrice]);
-    r1.getCell(4).numFmt = '#,##0.00';
+    
+    // คอลัมน์พื้นฐาน
+    r1.getCell(1).value = idx + 1; // ลำดับ
+    r1.getCell(2).value = d[cm.project] || ""; // งานจัดซื้อจัดจ้าง
+    r1.getCell(3).value = parseMoney(d[cm.budget]); // วงเงินงบประมาณ (คอลัมน์ I)
+    r1.getCell(4).value = parseMoney(d[cm.medianPrice]); // ราคากลาง (คอลัมน์ J)
     r1.getCell(5).value = "เฉพาะเจาะจง";
-    r1.getCell(6).value = d[cm.party]||"";
-    r1.getCell(9).value = d[cm.party]||"";
-    r1.getCell(12).value = "เป็นผู้มีคุณสมบัติตรงตามเงื่อนไขที่กำหนด";
-    r1.getCell(13).value = typeLabel + " เลขที่ " + (d[0]||"");
-    r1.getCell(14).value = d[1]||""; // egp
-    for(let c=1;c<=14;c++){r1.getCell(c).font=fontTH;r1.getCell(c).alignment=leftWrap;r1.getCell(c).border=border;}
-    ws1.mergeCells(row,6,row,8);
-    ws1.mergeCells(row,9,row,11);
-    r1.height = 33;
+    
+    // คอลัมน์ 6-8: รายชื่อผู้เสนอราคาและราคาที่เสนอ (ใช้ \n)
+    // แสดงชื่อผู้เสนอราคา และบรรทัดใหม่เป็น "เสนอราคา [จำนวนเงิน] บาท"
+    r1.getCell(6).value = `${d[cm.party] || ""}\nเสนอราคา ${fmtMoney(parseMoney(d[cm.offeredPrice]))} บาท`;
+    ws1.mergeCells(row, 6, row, 8); // Merge F-H
 
-    // Row 2 of record (price detail)
-    row++;
-    const r2 = ws1.getRow(row);
-    r2.getCell(6).value = "เสนอราคา";
-    r2.getCell(7).value = parseMoney(d[cm.offeredPrice]);
-    r2.getCell(7).numFmt = '#,##0.00';
-    r2.getCell(8).value = "บาท";
-    r2.getCell(9).value = "ราคาที่ตกลง";
-    r2.getCell(10).value = parseMoney(d[cm.agreedPrice]);
-    r2.getCell(10).numFmt = '#,##0.00';
-    r2.getCell(11).value = "บาท";
-    r2.getCell(13).value = d[cm.date]||"";
-    for(let c=1;c<=14;c++){r2.getCell(c).font=fontTH;r2.getCell(c).alignment=leftWrap;r2.getCell(c).border=border;}
-    r2.height = 20;
-    row++;
+    // คอลัมน์ 9-11: ผู้ได้รับการเลือกและราคาที่ตกลง (ใช้ \n)
+    // แสดงชื่อผู้ชนะ และบรรทัดใหม่เป็น "ราคาที่ตกลง [จำนวนเงิน] บาท"
+    r1.getCell(9).value = `${d[cm.party] || ""}\nราคาที่ตกลง ${fmtMoney(parseMoney(d[cm.agreedPrice]))} บาท`;
+    ws1.mergeCells(row, 9, row, 11); // Merge I-K
+
+    r1.getCell(12).value = "เป็นผู้มีคุณสมบัติตรงตามเงื่อนไขที่กำหนด";
+    
+    // คอลัมน์ 13: เลขที่และวันที่ (ใช้ \n)
+    r1.getCell(13).value = `${typeLabel} เลขที่ ${d[0] || ""}\nวันที่ ${d[cm.date] || ""}`;
+    
+    r1.getCell(14).value = d[1] || ""; // เลขที่โครงการ (egp)
+
+    // ตั้งค่า Format และ Border
+    for(let c=1; c<=14; c++){
+      const cell = r1.getCell(c);
+      cell.font = fontTH;
+      // สำคัญมาก: ต้องใส่ wrapText: true เพื่อให้ \n ทำงาน
+      cell.alignment = { ...leftWrap, wrapText: true, vertical: 'top' }; 
+      cell.border = border;
+      
+      // จัดรูปแบบตัวเลขสำหรับคอลัมน์วงเงิน
+      if(c === 3 || c === 4) cell.numFmt = '#,##0.00';
+    }
+
+    // ปรับความสูงแถวให้พอดีกับเนื้อหาที่เพิ่มขึ้น
+    r1.height = 45; 
+    row++; // เพิ่มทีละ 1 แถวต่อ 1 รายการ
   });
 
   // ═══ SHEET 2: สาระสำคัญ ═══
