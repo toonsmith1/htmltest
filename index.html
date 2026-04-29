@@ -1052,7 +1052,7 @@ async function exportSummarySheets() {
     const d = sel.rawRow;
     const typeLabel = sel.sheetType === 'contract' ? 'สัญญา' : (sel.sheetType === 'po' ? 'ใบสั่งจ้าง' : 'ข้อตกลง');
     const egpIdx = 1;
-    const taxIdx = sel.sheetType === 'agreement' ? 5 : 6;
+    const taxIdx = 6;
     const controlIdx = 2;
 
     // Sheet name: ตัดอักขระที่ Excel ไม่รับออก, จำกัด 31 ตัวอักษร
