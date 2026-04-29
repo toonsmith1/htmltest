@@ -74,6 +74,7 @@ tr.clickable-row:hover td{background:rgba(56,189,248,0.06)!important}
       <button class="nav-btn active" onclick="showPage('dashboard')">📊 แดชบอร์ด</button>
       <button class="nav-btn" onclick="showPage('form')">✏️ กรอกข้อมูล</button>
       <button class="nav-btn" onclick="showPage('report')">📥 สขร.1</button>
+      <button class="nav-btn" onclick="showPage('summary')">📄 สาระสำคัญ</button>
       <button class="nav-btn" onclick="showPage('script')">⚙️ ตั้งค่า</button>
     </div>
   </div>
@@ -95,6 +96,9 @@ tr.clickable-row:hover td{background:rgba(56,189,248,0.06)!important}
 
   <!-- REPORT PAGE -->
   <div id="page-report" class="hidden"></div>
+
+  <!-- SUMMARY PAGE -->
+  <div id="page-summary" class="hidden"></div>
 
   <!-- SCRIPT PAGE -->
   <div id="page-script" class="hidden"></div>
@@ -277,14 +281,16 @@ function showError(msg) {
 // ═══════════ PAGE NAVIGATION ═══════════
 function showPage(page) {
   currentPage = page;
+  const pages = ["dashboard","form","report","summary","script"];
   document.querySelectorAll(".nav-btn").forEach((b, i) => {
-    b.classList.toggle("active", ["dashboard","form","report","script"][i] === page);
+    b.classList.toggle("active", pages[i] === page);
   });
-  ["dashboard","form","report","script"].forEach(p => {
+  pages.forEach(p => {
     $("page-"+p).classList.toggle("hidden", p !== page);
   });
   if (page === "form") renderForm();
   if (page === "report") renderReport();
+  if (page === "summary") renderSummary();
   if (page === "script") renderScript();
   if (page === "dashboard") renderDashboard();
 }
@@ -924,6 +930,262 @@ async function exportReport() {
   a.click();
   URL.revokeObjectURL(url);
   $("reportStatus").innerHTML = `<div class="success-box">✅ ดาวน์โหลดสำเร็จ! — สขร1_${esc(monthName)}.xlsx</div>`;
+}
+
+// ═══════════ SUMMARY PAGE (สาระสำคัญสัญญา แยก Sheet) ═══════════
+let summarySelectedItems = [];
+
+function renderSummary() {
+  const el = $("page-summary");
+  const stats = computeStats();
+  if (!stats) {
+    el.innerHTML = `<div style="text-align:center;padding:60px 20px;color:#475569"><div style="font-size:48px;margin-bottom:16px">📄</div><div style="font-size:14px">กดรีเฟรชเพื่อโหลดข้อมูลก่อน</div></div>`;
+    return;
+  }
+
+  let html = `<div class="fade-up">
+    <div class="card" style="margin-bottom:16px">
+      <h3 style="margin:0 0 6px;font-size:16px;font-weight:700;color:#f1f5f9">📄 สาระสำคัญของสัญญา</h3>
+      <p style="margin:0;font-size:12.5px;color:#64748b">เลือกรายการที่ต้องการ — ระบบจะสร้าง <b style="color:#38bdf8">1 Sheet ต่อ 1 สัญญา</b> ในไฟล์ Excel เดียวกัน</p>
+    </div>`;
+
+  for (const t of SHEET_TYPES) {
+    const st = stats.byType[t.id];
+    if (!st.count) continue;
+    html += `<div class="card fade-up" style="margin-bottom:16px;padding:0;overflow:hidden">
+      <div style="padding:12px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+        <div style="font-size:14px;font-weight:600;color:#f1f5f9">${t.icon} ${t.label} <span style="font-size:12px;font-weight:400;color:#64748b">(${st.count} รายการ)</span></div>
+        <label style="font-size:12px;color:#38bdf8;cursor:pointer;display:flex;align-items:center;gap:5px">
+          <input type="checkbox" class="chk" onchange="toggleAllSummary('${t.id}',this.checked)"> เลือกทั้งหมด
+        </label>
+      </div>
+      <div style="overflow-x:auto"><table>
+        <thead><tr><th style="width:36px"></th><th>เลขที่</th><th>คู่สัญญา/ผู้ขาย</th><th>รายการ</th><th style="text-align:right">วงเงิน</th><th>สถานะ</th></tr></thead>
+        <tbody>${st.items.map(item => {
+          const s = sc(item.status);
+          const ri = item._rowIndex;
+          const isChecked = summarySelectedItems.some(x => x.sheetType === t.id && x.rowIndex === ri);
+          return `<tr>
+            <td><input type="checkbox" class="chk" ${isChecked ? "checked" : ""} onchange="toggleItemSummary('${t.id}',${ri},this.checked)"></td>
+            <td style="font-weight:600;color:#e2e8f0;white-space:nowrap">${esc(item.no)}</td>
+            <td style="color:#cbd5e1;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(item.party || "")}</td>
+            <td style="color:#94a3b8;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(item.project || "")}</td>
+            <td class="mono" style="text-align:right;color:#e2e8f0;white-space:nowrap">${fmtMoney(item.amount)}</td>
+            <td>${item.status ? `<span class="status-badge" style="background:${s.bg};color:${s.fg}"><span class="status-dot" style="background:${s.dot}"></span>${esc(item.status)}</span>` : ""}</td>
+          </tr>`;
+        }).join("")}</tbody>
+      </table></div></div>`;
+  }
+
+  html += `<div id="summarySummary"></div>
+    <div style="display:flex;gap:10px;margin-top:8px">
+      <button class="btn-primary" style="flex:1;padding:14px" onclick="exportSummarySheets()">📄 ดาวน์โหลด Excel (แยก Sheet)</button>
+      <button class="btn-ghost" style="padding:14px" onclick="summarySelectedItems=[];renderSummary()">🗑️ ล้างการเลือก</button>
+    </div>
+    <div id="summaryStatus" style="margin-top:14px"></div>
+  </div>`;
+
+  el.innerHTML = html;
+  updateSummarySummary();
+}
+
+function toggleItemSummary(sheetType, rowIndex, checked) {
+  if (checked) {
+    if (!summarySelectedItems.some(x => x.sheetType === sheetType && x.rowIndex === rowIndex)) {
+      summarySelectedItems.push({ sheetType, rowIndex, rawRow: sheetData[sheetType].rows[rowIndex], headers: sheetData[sheetType].headers });
+    }
+  } else {
+    summarySelectedItems = summarySelectedItems.filter(x => !(x.sheetType === sheetType && x.rowIndex === rowIndex));
+  }
+  updateSummarySummary();
+}
+
+function toggleAllSummary(sheetType, checked) {
+  const stats = computeStats();
+  if (!stats) return;
+  const items = stats.byType[sheetType].items;
+  if (checked) {
+    items.forEach(item => {
+      if (!summarySelectedItems.some(x => x.sheetType === sheetType && x.rowIndex === item._rowIndex)) {
+        summarySelectedItems.push({ sheetType, rowIndex: item._rowIndex, rawRow: sheetData[sheetType].rows[item._rowIndex], headers: sheetData[sheetType].headers });
+      }
+    });
+  } else {
+    summarySelectedItems = summarySelectedItems.filter(x => x.sheetType !== sheetType);
+  }
+  renderSummary();
+}
+
+function updateSummarySummary() {
+  const el = $("summarySummary");
+  if (!el) return;
+  if (!summarySelectedItems.length) {
+    el.innerHTML = `<div style="padding:14px 18px;border-radius:10px;background:rgba(148,163,184,0.05);border:1px solid var(--border);font-size:13px;color:#475569;text-align:center">ยังไม่ได้เลือกรายการ — กดเลือกจากตารางด้านบน</div>`;
+    return;
+  }
+  const totalAmt = summarySelectedItems.reduce((s, x) => s + parseMoney(x.rawRow[COL_MAP[x.sheetType].amount]), 0);
+  el.innerHTML = `<div style="padding:14px 18px;border-radius:10px;background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.15);font-size:13px;color:#e2e8f0;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+    <span>✅ เลือกแล้ว <b style="color:#38bdf8">${summarySelectedItems.length}</b> รายการ — จะได้ <b style="color:#a78bfa">${summarySelectedItems.length} Sheet</b></span>
+    <span>รวมวงเงิน <b class="mono" style="color:#fbbf24">฿${fmtMoney(totalAmt)}</b></span>
+  </div>`;
+}
+
+async function exportSummarySheets() {
+  const statusEl = $("summaryStatus");
+  if (!summarySelectedItems.length) {
+    statusEl.innerHTML = `<div class="error-box">❌ กรุณาเลือกรายการก่อน</div>`;
+    return;
+  }
+  statusEl.innerHTML = `<div style="padding:10px 14px;border-radius:10px;font-size:13px;color:#38bdf8;background:rgba(56,189,248,0.08);border:1px solid rgba(56,189,248,0.2)">⏳ กำลังสร้างไฟล์ ${summarySelectedItems.length} Sheet...</div>`;
+
+  const wb = new ExcelJS.Workbook();
+  const fontTH = { name: 'TH SarabunPSK', size: 16 };
+  const fontTHBold = { name: 'TH SarabunPSK', size: 16, bold: true };
+  const fontTitle = { name: 'TH SarabunPSK', size: 18, bold: true };
+  const thin = { style: 'thin', color: { argb: 'FF334155' } };
+  const border = { top: thin, bottom: thin, left: thin, right: thin };
+  const leftWrap = { vertical: 'middle', wrapText: true };
+  const centerWrap = { horizontal: 'center', vertical: 'middle', wrapText: true };
+
+  summarySelectedItems.forEach((sel, index) => {
+    const cm = COL_MAP[sel.sheetType];
+    const d = sel.rawRow;
+    const typeLabel = sel.sheetType === 'contract' ? 'สัญญา' : (sel.sheetType === 'po' ? 'ใบสั่งจ้าง' : 'ข้อตกลง');
+    const egpIdx = 1;
+    const taxIdx = sel.sheetType === 'agreement' ? 5 : 6;
+    const controlIdx = 2;
+
+    // Sheet name: ตัดอักขระที่ Excel ไม่รับออก, จำกัด 31 ตัวอักษร
+    const rawName = `${index + 1}.${typeLabel} ${d[0] || ""}`;
+    const sheetName = rawName.replace(/[\/\\?\*\[\]:]/g, '-').slice(0, 31);
+    const ws = wb.addWorksheet(sheetName);
+
+    ws.columns = [
+      { width: 6 }, { width: 30 }, { width: 22 }, { width: 10 },
+      { width: 10 }, { width: 18 }, { width: 10 }, { width: 20 },
+      { width: 10 }, { width: 14 }, { width: 14 }, { width: 22 }
+    ];
+
+    const set = (row, col, val, bold, center) => {
+      const c = ws.getCell(row, col);
+      c.value = val;
+      c.font = bold ? (bold === 'title' ? fontTitle : fontTHBold) : fontTH;
+      c.alignment = center ? centerWrap : leftWrap;
+    };
+    const setBorder = (row, col) => { ws.getCell(row, col).border = border; };
+    const setMoney = (row, col, val) => {
+      const c = ws.getCell(row, col);
+      c.value = parseMoney(val);
+      c.numFmt = '#,##0.00';
+      c.font = fontTH;
+      c.alignment = { horizontal: 'right', vertical: 'middle' };
+    };
+
+    // ─── Header ───
+    ws.mergeCells('A1:L1');
+    set(1, 1, 'ข้อมูลสาระสำคัญในสัญญา', 'title', true);
+    ws.getRow(1).height = 36;
+
+    ws.mergeCells('A2:L2');
+    set(2, 1, 'ศูนย์ข้อมูลเกษตรแห่งชาติ สำนักงานเศรษฐกิจการเกษตร', true, true);
+
+    // ─── ข้อมูลพื้นฐาน ───
+    let r = 4;
+    const infoRows = [
+      [1, 'หน่วยงาน', 'ศูนย์ข้อมูลเกษตรแห่งชาติ สำนักงานเศรษฐกิจการเกษตร'],
+      [2, 'เลขที่โครงการ (e-GP)', d[egpIdx] || ''],
+      [3, 'ชื่อโครงการ/รายการ', d[cm.project] || ''],
+      [4, 'งบประมาณที่ได้รับจัดสรร (บาท)', null],
+      [5, 'ราคากลาง (บาท)', null],
+    ];
+    infoRows.forEach(([no, label, val]) => {
+      set(r, 1, no, true, true);
+      set(r, 2, label, true);
+      if (val !== null) {
+        set(r, 3, val);
+      } else {
+        // money field (budget or medianPrice)
+        const moneyKey = no === 4 ? cm.budget : cm.medianPrice;
+        setMoney(r, 3, d[moneyKey]);
+        set(r, 5, 'บาท');
+      }
+      ws.getRow(r).height = 24;
+      r++;
+    });
+
+    r++; // spacer
+
+    // ─── ส่วนที่ 6: รายชื่อผู้เสนอราคา ───
+    set(r, 1, 6, true, true);
+    set(r, 2, 'รายชื่อผู้เสนอราคา มีดังนี้', true);
+    ws.getRow(r).height = 24;
+    r++;
+
+    // Sub-header
+    ['ลำดับ', 'รายการพิจารณา', '', '', 'เลขประจำตัว\nผู้เสียภาษีฯ', '', 'รายชื่อผู้เสนอราคา', '', '', '', 'ราคาที่เสนอ\n(บาท)', ''].forEach((v, i) => {
+      if (v) set(r, i + 1, v, true, true);
+      setBorder(r, i + 1);
+    });
+    ws.mergeCells(r, 2, r, 4);
+    ws.mergeCells(r, 5, r, 6);
+    ws.mergeCells(r, 7, r, 10);
+    ws.getRow(r).height = 36;
+    r++;
+
+    // Data row
+    set(r, 1, 1, false, true);
+    ws.mergeCells(r, 2, r, 4);
+    set(r, 2, d[cm.project] || '');
+    ws.mergeCells(r, 5, r, 6);
+    set(r, 5, d[taxIdx] || '');
+    ws.mergeCells(r, 7, r, 10);
+    set(r, 7, d[cm.party] || '');
+    setMoney(r, 11, d[cm.offeredPrice]);
+    for (let c = 1; c <= 12; c++) setBorder(r, c);
+    ws.getRow(r).height = 28;
+    r += 3; // spacer
+
+    // ─── ส่วนที่ 7: ผู้ที่ได้รับการคัดเลือก ───
+    set(r, 1, 7, true, true);
+    set(r, 2, 'ผู้ที่ได้รับการคัดเลือก ได้แก่', true);
+    ws.getRow(r).height = 24;
+    r++;
+
+    // Sub-header
+    const hdr7 = ['ลำดับ', 'เลขประจำตัวผู้เสียภาษีฯ', 'ชื่อผู้ขาย/คู่สัญญา', '', '', '', 'เลขคุม\ne-GP', `${typeLabel} เลขที่`, 'วันที่ทำสัญญา', 'จำนวนเงิน\n(บาท)', 'สถานะสัญญา', 'เหตุผลที่คัดเลือก'];
+    hdr7.forEach((v, i) => {
+      if (v) set(r, i + 1, v, true, true);
+      setBorder(r, i + 1);
+    });
+    ws.mergeCells(r, 3, r, 6);
+    ws.getRow(r).height = 36;
+    r++;
+
+    // Data row
+    set(r, 1, 1, false, true);
+    set(r, 2, d[taxIdx] || '');
+    ws.mergeCells(r, 3, r, 6);
+    set(r, 3, d[cm.party] || '');
+    set(r, 7, d[controlIdx] || '');
+    set(r, 8, d[0] || '');
+    set(r, 9, d[cm.date] || '');
+    setMoney(r, 10, d[cm.amount]);
+    set(r, 11, d[cm.status] || '');
+    set(r, 12, 'เป็นผู้มีคุณสมบัติตรงตามเงื่อนไขที่กำหนด');
+    for (let c = 1; c <= 12; c++) setBorder(r, c);
+    ws.getRow(r).height = 28;
+  });
+
+  // ─── Download ───
+  const buf = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `สาระสำคัญสัญญา_${new Date().toLocaleDateString('th-TH').replace(/\//g,'-')}.xlsx`;
+  a.click();
+  URL.revokeObjectURL(url);
+  statusEl.innerHTML = `<div class="success-box">✅ ดาวน์โหลดสำเร็จ! — ${summarySelectedItems.length} Sheet ในไฟล์เดียว</div>`;
 }
 
 // ═══════════ INIT ═══════════
