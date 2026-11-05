@@ -134,7 +134,7 @@ svg,.bar{filter:none}
 [style*="rgba(239,68,68"]{background:#FFE9E6!important}
 [style*="background:#0f172a"]{background:#fff!important}
 [style*="border-radius:10px"],[style*="border-radius:8px"]{border-radius:12px!important}
-.illus{flex-shrink:0;width:240px;height:120px;margin:-10px 0 -10px 0}
+.illus{flex-shrink:0;width:auto;height:175px;margin:-26px 0 -24px;background:radial-gradient(circle at 58% 52%,#FFC233 0 64px,transparent 65px),radial-gradient(circle at 8% 100%,#12A58C 0 40px,transparent 41px)}
 @media(max-width:900px){body::before,body::after{display:none}.illus{display:none}}
 @media(max-width:640px){.main{padding:16px 14px 60px}.nav-inner{height:auto;flex-direction:column;align-items:flex-start;padding:10px 0;gap:8px}}
 </style>
@@ -1072,23 +1072,7 @@ async function exportReport() {
 // ═══════════ SUMMARY PAGE (สาระสำคัญสัญญา แยก Sheet) ═══════════
 let summarySelectedItems = [];
 
-const ILLUSTRATION = `<svg class="illus" viewBox="0 0 240 120" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-  <circle cx="150" cy="62" r="46" fill="#FFC233"/>
-  <path d="M10 118 a38 38 0 0 1 76 0 Z" fill="#12A58C"/>
-  <path d="M118 8 l0 10 M108 12 l6 8 M128 12 l-6 8" stroke="#FFC233" stroke-width="3" stroke-linecap="round"/>
-  <rect x="58" y="14" width="68" height="90" rx="8" fill="#fff" stroke="#1B2A5C" stroke-width="3"/>
-  <rect x="68" y="28" width="12" height="12" rx="3" fill="#12A58C"/><path d="M71 34 l3 3 l5 -6" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/>
-  <rect x="68" y="50" width="12" height="12" rx="3" fill="#12A58C"/><path d="M71 56 l3 3 l5 -6" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/>
-  <rect x="68" y="72" width="12" height="12" rx="3" fill="#12A58C"/><path d="M71 78 l3 3 l5 -6" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/>
-  <rect x="88" y="31" width="30" height="6" rx="3" fill="#9DB7F5"/><rect x="88" y="53" width="30" height="6" rx="3" fill="#9DB7F5"/><rect x="88" y="75" width="22" height="6" rx="3" fill="#9DB7F5"/>
-  <path d="M150 118 q0 -42 26 -42 q26 0 26 42 Z" fill="#FF7A66"/>
-  <rect x="170" y="62" width="12" height="16" rx="5" fill="#FFD2B5"/>
-  <circle cx="176" cy="50" r="15" fill="#FFD2B5"/>
-  <path d="M160 52 q-4 -26 20 -26 q18 2 14 24 q-4 -14 -16 -14 q-12 0 -18 16 Z" fill="#1B2A5C"/>
-  <rect x="198" y="92" width="34" height="26" rx="5" fill="#1F5FE0" transform="rotate(-8 215 105)"/>
-  <path d="M140 92 l36 -22" stroke="#FF7A66" stroke-width="12" stroke-linecap="round"/>
-  <path d="M123 78 l18 -4" stroke="#1B2A5C" stroke-width="4" stroke-linecap="round"/>
-</svg>`;
+const ILLUSTRATION = `<img class="illus" src="assets/character.png" alt="">`;
 
 function renderSummary() {
   const el = $("page-summary");
