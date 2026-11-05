@@ -56,6 +56,87 @@ tr.clickable-row{cursor:pointer}
 tr.clickable-row:hover td{background:rgba(56,189,248,0.06)!important}
 .chk{width:16px;height:16px;accent-color:#38bdf8;cursor:pointer;margin:0}
 @media(max-width:640px){.grid-2{grid-template-columns:1fr}}
+/* ═══════════ THEME: CORPORATE MEMPHIS ═══════════ */
+:root{--bg:#FFF6EE;--card:#FFFFFF;--border:#F1E4D6;--text:#1B2A5C;--muted:#6B7699;--accent:#1F5FE0;--accent2:#FF7A66;--coral:#FF7A66;--teal:#12A58C;--yellow:#FFC233;--blue:#1F5FE0;--soft:#EAF1FF;--line:#F1E4D6}
+html{-webkit-font-smoothing:antialiased}
+body{background:var(--bg);color:var(--text);font-weight:400;position:relative;overflow-x:hidden}
+/* decorative memphis shapes */
+body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+ background:
+  radial-gradient(circle at 0 190px,var(--coral) 0 105px,transparent 106px),
+  radial-gradient(circle at 0 330px,transparent 0 44px,var(--teal) 45px 60px,transparent 61px),
+  radial-gradient(circle at 100% 150px,var(--yellow) 0 62px,transparent 63px),
+  radial-gradient(circle at 100% 100%,var(--blue) 0 120px,transparent 121px),
+  radial-gradient(circle at 100% 100%,transparent 0 62px,var(--yellow) 63px 66px,transparent 67px),
+  radial-gradient(circle at 4% 100%,var(--yellow) 0 52px,transparent 53px);}
+body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+ background:
+  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='20'%3E%3Cpath d='M2 10 q10 -12 20 0 t20 0 t20 0 t20 0' fill='none' stroke='%231F5FE0' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E") calc(100% - 8px) 270px no-repeat,
+  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cpath d='M20 2 L24 16 L38 14 L27 24 L34 37 L20 29 L6 37 L13 24 L2 14 L16 16 Z' fill='%23FF7A66'/%3E%3C/svg%3E") calc(100% - 22px) 340px no-repeat,
+  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='42'%3E%3Cg fill='%23FFC233'%3E%3Ccircle cx='4' cy='4' r='2.5'/%3E%3Ccircle cx='18' cy='4' r='2.5'/%3E%3Ccircle cx='32' cy='4' r='2.5'/%3E%3Ccircle cx='46' cy='4' r='2.5'/%3E%3Ccircle cx='4' cy='18' r='2.5'/%3E%3Ccircle cx='18' cy='18' r='2.5'/%3E%3Ccircle cx='32' cy='18' r='2.5'/%3E%3Ccircle cx='46' cy='18' r='2.5'/%3E%3Ccircle cx='4' cy='32' r='2.5'/%3E%3Ccircle cx='18' cy='32' r='2.5'/%3E%3Ccircle cx='32' cy='32' r='2.5'/%3E%3Ccircle cx='46' cy='32' r='2.5'/%3E%3C/g%3E%3C/svg%3E") 18px 420px no-repeat;}
+.fade-up,nav,.main{position:relative;z-index:1}
+*::-webkit-scrollbar-thumb{background:#E3D5C5;border-radius:10px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:24px;backdrop-filter:none;box-shadow:0 6px 24px rgba(31,95,224,.07)}
+.card h3::after{content:"";display:block;width:56px;height:4px;border-radius:4px;background:var(--yellow);margin-top:8px}
+h3{font-weight:700!important;color:var(--text)}
+nav{background:transparent;border-bottom:none;backdrop-filter:none;padding:0 28px}
+.nav-inner{height:76px;max-width:1000px}
+.logo-tile{position:relative;width:40px;height:40px;border-radius:12px;background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:-6px 6px 0 -1px var(--coral)}
+.nav-btn{padding:9px 16px;border-radius:12px;color:var(--text);font-weight:500;font-size:14px}
+.nav-btn:hover{background:rgba(31,95,224,.08)}
+.nav-btn.active{background:var(--blue);color:#fff;font-weight:600;box-shadow:0 6px 16px rgba(31,95,224,.28)}
+.main{max-width:1000px;padding:20px 20px 90px}
+.inp{border-radius:12px;border:1.5px solid #E1E7F5;background:#fff;color:var(--text)}
+.inp:focus{border-color:var(--blue);box-shadow:0 0 0 4px rgba(31,95,224,.12)}
+.btn-primary{border-radius:12px;background:var(--blue);color:#fff;box-shadow:0 8px 20px rgba(31,95,224,.28);font-weight:600}
+.btn-primary:hover{opacity:1;background:#1850C4}
+.btn-ghost{border-radius:12px;border:1.5px solid #E1E7F5;color:var(--muted);background:#fff}
+.btn-ghost:hover{border-color:var(--coral);color:var(--coral)}
+.tab-btn{border-radius:12px;border:1.5px solid #E1E7F5;background:#fff;color:var(--muted)}
+.tab-btn.active{border-color:var(--blue);background:var(--soft);color:var(--blue);font-weight:700}
+.status-badge{border-radius:999px;background:#D8F4EC!important;color:#0B7A66!important;font-weight:500;padding:4px 12px}
+.status-dot{filter:none}
+table{font-size:13.5px;border-collapse:separate;border-spacing:0}
+th{background:#DCE9FF;color:var(--text);font-weight:700;font-size:13px;border-bottom:none;padding:12px 14px}
+th:first-child{border-radius:12px 0 0 12px}th:last-child{border-radius:0 12px 12px 0}
+td{padding:13px 14px;border-bottom:1px solid #F3EADF}
+tr:hover td{background:#F7FAFF}
+tr.clickable-row:hover td{background:#F7FAFF!important}
+.mono{font-family:'IBM Plex Sans Thai','JetBrains Mono',sans-serif;font-weight:700}
+.summary-grand{background:linear-gradient(135deg,#EAF1FF,#FFF1E6);border:1px solid #DCE6FA}
+.error-box{border-radius:12px;background:#FFE9E6;border:1px solid #FFC3BA;color:#C7382B}
+.success-box{border-radius:12px;background:#DDF6EE;border:1px solid #A9E6D4;color:#0B7A66}
+.modal-overlay{background:rgba(27,42,92,.35);backdrop-filter:blur(3px)}
+.modal-box{background:#fff;border:none;border-radius:20px;box-shadow:0 24px 60px rgba(27,42,92,.25)}
+.detail-row{border-bottom:1px solid #F3EADF}
+.detail-label{color:var(--muted)}
+.detail-value{color:var(--text)}
+.detail-value:empty::after{color:#D6CCBF}
+.chk{accent-color:var(--blue);width:18px;height:18px;border-radius:5px}
+.bar{border-radius:6px 6px 0 0}
+svg,.bar{filter:none}
+/* override inline dark-theme colors set by templates */
+[style*="color:#f1f5f9"],[style*="color:#e2e8f0"]{color:var(--text)!important}
+[style*="color:#cbd5e1"]{color:#34406F!important}
+[style*="color:#94a3b8"]{color:#56628C!important}
+[style*="color:#64748b"]{color:var(--muted)!important}
+[style*="color:#475569"]{color:#8791B3!important}
+[style*="color:#334155"]{color:#C9CFE3!important}
+[style*="color:#38bdf8"],[style*="color:#a5f3fc"]{color:var(--blue)!important}
+[style*="color:#a78bfa"]{color:#7A5AF8!important}
+[style*="color:#fbbf24"]{color:#D98A00!important}
+[style*="color:#f87171"]{color:#E5484D!important}
+[style*="color:#4ade80"]{color:var(--teal)!important}
+[style*="rgba(56,189,248"],[style*="rgba(148,163,184"],[style*="rgba(15,23,42"],[style*="rgba(0,0,0,0.3)"]{background:var(--soft)!important;border-color:#D6E3FA!important}
+[style*="rgba(8,14,26"]{background:#fff!important}
+[style*="rgba(251,191,36"]{background:#FFF3D6!important;border-color:#FFE19A!important}
+[style*="rgba(34,197,94"]{background:#DDF6EE!important}
+[style*="rgba(239,68,68"]{background:#FFE9E6!important}
+[style*="background:#0f172a"]{background:#fff!important}
+[style*="border-radius:10px"],[style*="border-radius:8px"]{border-radius:12px!important}
+.illus{flex-shrink:0;width:240px;height:120px;margin:-10px 0 -10px 0}
+@media(max-width:900px){body::before,body::after{display:none}.illus{display:none}}
+@media(max-width:640px){.main{padding:16px 14px 60px}.nav-inner{height:auto;flex-direction:column;align-items:flex-start;padding:10px 0;gap:8px}}
 </style>
 </head>
 <body>
@@ -64,7 +145,7 @@ tr.clickable-row:hover td{background:rgba(56,189,248,0.06)!important}
 <nav>
   <div class="nav-inner">
     <div style="display:flex;align-items:center;gap:10px">
-      <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#0ea5e9,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:16px">📋</div>
+      <div class="logo-tile">📄</div>
       <div>
         <div style="font-size:14px;font-weight:700;color:#f1f5f9;line-height:1.2">ทะเบียนคุมพัสดุ</div>
         <div style="font-size:10px;color:#475569">ศูนย์ข้อมูลเกษตรแห่งชาติ • 2569</div>
@@ -991,6 +1072,24 @@ async function exportReport() {
 // ═══════════ SUMMARY PAGE (สาระสำคัญสัญญา แยก Sheet) ═══════════
 let summarySelectedItems = [];
 
+const ILLUSTRATION = `<svg class="illus" viewBox="0 0 240 120" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <circle cx="150" cy="62" r="46" fill="#FFC233"/>
+  <path d="M10 118 a38 38 0 0 1 76 0 Z" fill="#12A58C"/>
+  <path d="M118 8 l0 10 M108 12 l6 8 M128 12 l-6 8" stroke="#FFC233" stroke-width="3" stroke-linecap="round"/>
+  <rect x="58" y="14" width="68" height="90" rx="8" fill="#fff" stroke="#1B2A5C" stroke-width="3"/>
+  <rect x="68" y="28" width="12" height="12" rx="3" fill="#12A58C"/><path d="M71 34 l3 3 l5 -6" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <rect x="68" y="50" width="12" height="12" rx="3" fill="#12A58C"/><path d="M71 56 l3 3 l5 -6" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <rect x="68" y="72" width="12" height="12" rx="3" fill="#12A58C"/><path d="M71 78 l3 3 l5 -6" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <rect x="88" y="31" width="30" height="6" rx="3" fill="#9DB7F5"/><rect x="88" y="53" width="30" height="6" rx="3" fill="#9DB7F5"/><rect x="88" y="75" width="22" height="6" rx="3" fill="#9DB7F5"/>
+  <path d="M150 118 q0 -42 26 -42 q26 0 26 42 Z" fill="#FF7A66"/>
+  <rect x="170" y="62" width="12" height="16" rx="5" fill="#FFD2B5"/>
+  <circle cx="176" cy="50" r="15" fill="#FFD2B5"/>
+  <path d="M160 52 q-4 -26 20 -26 q18 2 14 24 q-4 -14 -16 -14 q-12 0 -18 16 Z" fill="#1B2A5C"/>
+  <rect x="198" y="92" width="34" height="26" rx="5" fill="#1F5FE0" transform="rotate(-8 215 105)"/>
+  <path d="M140 92 l36 -22" stroke="#FF7A66" stroke-width="12" stroke-linecap="round"/>
+  <path d="M123 78 l18 -4" stroke="#1B2A5C" stroke-width="4" stroke-linecap="round"/>
+</svg>`;
+
 function renderSummary() {
   const el = $("page-summary");
   const stats = computeStats();
@@ -1000,10 +1099,10 @@ function renderSummary() {
   }
 
   let html = `<div class="fade-up">
-    <div class="card" style="margin-bottom:16px">
+    <div class="card" style="margin-bottom:16px"><div style="display:flex;align-items:center;justify-content:space-between;gap:16px"><div>
       <h3 style="margin:0 0 6px;font-size:16px;font-weight:700;color:#f1f5f9">📄 สาระสำคัญของสัญญา</h3>
       <p style="margin:0;font-size:12.5px;color:#64748b">เลือกรายการที่ต้องการ — ระบบจะสร้าง <b style="color:#38bdf8">1 Sheet ต่อ 1 สัญญา</b> ในไฟล์ Excel เดียวกัน</p>
-    </div>`;
+    </div>${ILLUSTRATION}</div></div>`;
 
   for (const t of SHEET_TYPES) {
     const st = stats.byType[t.id];
