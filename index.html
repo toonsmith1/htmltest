@@ -2,8 +2,6 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="refresh" content="0; url=https://docs.google.com/spreadsheets/d/1P3pBZPPWAGyDoKfdS1WmI4tfgnWk3vjRUNSeqwnJtDU/edit?usp=sharing">
-<script>location.replace("https://docs.google.com/spreadsheets/d/1P3pBZPPWAGyDoKfdS1WmI4tfgnWk3vjRUNSeqwnJtDU/edit?usp=sharing");</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ทะเบียนคุมพัสดุ — ศูนย์ข้อมูลเกษตรแห่งชาติ</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -233,48 +231,66 @@ const fmtMoney = n => n.toLocaleString("th-TH",{minimumFractionDigits:2,maximumF
 const esc = s => { const d=document.createElement("div");d.textContent=s;return d.innerHTML; };
 
 // ═══════════ JSONP FETCH ═══════════
+const SHEET_ID = "1P3pBZPPWAGyDoKfdS1WmI4tfgnWk3vjRUNSeqwnJtDU";
+const SHEET_TABS = {
+  contract:  "เลขที่สัญญา",
+  po:        "เลขที่ใบสั่งซื้อ/จ้าง/เช่า",
+  agreement: "เลขที่ข้อตกลง"
+};
+
+function gvizCell(c) {
+  if (!c || c.v === null || c.v === undefined) return "";
+  if (typeof c.v === "string" && /^Date\(/.test(c.v) && c.f) return c.f;
+  if (typeof c.v === "string" && /^Date\((\d+),(\d+),(\d+)/.test(c.v)) {
+    const m = c.v.match(/^Date\((\d+),(\d+),(\d+)/);
+    return ("0"+m[3]).slice(-2) + "/" + ("0"+(+m[2]+1)).slice(-2) + "/" + m[1];
+  }
+  return String(c.v);
+}
+
+function loadGvizSheet(key, tab) {
+  return new Promise((resolve, reject) => {
+    const cb = "_gviz_" + key + "_" + Date.now();
+    const script = document.createElement("script");
+    const timer = setTimeout(() => { done(); reject(new Error("หมดเวลาเชื่อมต่อ: " + tab)); }, 20000);
+    function done() { clearTimeout(timer); delete window[cb]; script.remove(); }
+    window[cb] = function(resp) {
+      done();
+      if (!resp || resp.status !== "ok") {
+        reject(new Error((resp && resp.errors && resp.errors[0] && resp.errors[0].detailed_message) || ("อ่านชีตไม่ได้: " + tab)));
+        return;
+      }
+      const grid = resp.table.rows.map(r => {
+        const row = [];
+        for (let i = 0; i < resp.table.cols.length; i++) row.push(gvizCell(r.c[i]));
+        return row;
+      });
+      const hdrFromCols = resp.table.cols.map(c => (c.label || "").replace(/\n/g, " ").trim());
+      const hasLabels = hdrFromCols.some(h => h);
+      const headers = hasLabels ? hdrFromCols : (grid.shift() || []).map(h => h.replace(/\n/g, " ").trim());
+      resolve({ headers: headers, rows: grid });
+    };
+    script.onerror = function() { done(); reject(new Error("โหลดชีตไม่ได้ — ตรวจสอบว่าแชร์เป็น 'ทุกคนที่มีลิงก์' แล้ว")); };
+    script.src = "https://docs.google.com/spreadsheets/d/" + SHEET_ID + "/gviz/tq?tqx=out:json;responseHandler:" + cb + "&sheet=" + encodeURIComponent(tab);
+    document.body.appendChild(script);
+  });
+}
+
 function fetchData() {
   $("statusText").textContent = "⏳ กำลังดึงข้อมูล...";
   $("errorBox").classList.add("hidden");
-
-  const cbName = "_cb_" + Date.now();
-  const timeout = setTimeout(() => {
-    cleanup();
-    showError("หมดเวลาเชื่อมต่อ — ลองกดรีเฟรชอีกครั้ง");
+  const keys = Object.keys(SHEET_TABS);
+  Promise.all(keys.map(k => loadGvizSheet(k, SHEET_TABS[k]))).then(list => {
+    const data = {};
+    keys.forEach((k, i) => data[k] = list[i]);
+    sheetData = data;
+    $("statusText").innerHTML = `✅ อัปเดตล่าสุด: ${new Date().toLocaleTimeString("th-TH")}`;
+    renderDashboard();
+  }).catch(err => {
+    showError(err.message || "ไม่สามารถดึงข้อมูลได้");
     $("statusText").textContent = "❌ โหลดไม่สำเร็จ";
-  }, 20000);
-
-  function cleanup() {
-    clearTimeout(timeout);
-    delete window[cbName];
-    const el = document.getElementById(cbName);
-    if (el) el.remove();
-  }
-
-  window[cbName] = function(result) {
-    cleanup();
-    if (result && result.success) {
-      sheetData = result.data;
-      const now = new Date();
-      $("statusText").innerHTML = `✅ อัปเดตล่าสุด: ${now.toLocaleTimeString("th-TH")}`;
-      $("errorBox").classList.add("hidden");
-      renderDashboard();
-    } else {
-      showError(result?.error || "ไม่สามารถดึงข้อมูลได้");
-    }
-  };
-
-  const script = document.createElement("script");
-  script.id = cbName;
-  script.src = WEB_APP_URL + "?callback=" + cbName;
-  script.onerror = function() {
-    cleanup();
-    showError("โหลดข้อมูลไม่ได้ — ตรวจสอบ Apps Script URL");
-    $("statusText").textContent = "❌ โหลดไม่สำเร็จ";
-  };
-  document.body.appendChild(script);
+  });
 }
-
 function showError(msg) {
   $("errorBox").textContent = "❌ " + msg;
   $("errorBox").classList.remove("hidden");
