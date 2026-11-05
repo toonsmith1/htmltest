@@ -648,7 +648,7 @@ function renderScript() {
     </div></div>`;
 }
 
-const SCRIPT_CODE = `var SHEET_ID = "1kGSQKzbaZQ_CW8vw4qBpEmK4g44JzrGPOFGcobCN1hY";
+const SCRIPT_CODE = `var SHEET_ID = "1P3pBZPPWAGyDoKfdS1WmI4tfgnWk3vjRUNSeqwnJtDU";
 
 var SHEET_CONFIG = {
   contract:  { name: "เลขที่สัญญา" },
@@ -1036,6 +1036,7 @@ function renderSummary() {
   html += `<div id="summarySummary"></div>
     <div style="display:flex;gap:10px;margin-top:8px">
       <button class="btn-primary" style="flex:1;padding:14px" onclick="exportSummarySheets()">📄 ดาวน์โหลด Excel (แยก Sheet)</button>
+      <button class="btn-primary" style="flex:1;padding:14px" onclick="exportSummaryPDF()">🖨️ ส่งออก PDF (แนวนอน)</button>
       <button class="btn-ghost" style="padding:14px" onclick="summarySelectedItems=[];renderSummary()">🗑️ ล้างการเลือก</button>
     </div>
     <div id="summaryStatus" style="margin-top:14px"></div>
@@ -1244,6 +1245,76 @@ async function exportSummarySheets() {
   statusEl.innerHTML = `<div class="success-box">✅ ดาวน์โหลดสำเร็จ! — ${summarySelectedItems.length} Sheet ในไฟล์เดียว</div>`;
 }
 
+// ═══════════ EXPORT PDF (แนวนอน) ═══════════
+// สร้างหน้า A4 แนวนอน 1 หน้า/สัญญา แล้วเปิดหน้าต่างพิมพ์ — เลือก "บันทึกเป็น PDF" (Save as PDF) ที่ปลายทาง
+async function exportSummaryPDF() {
+  const statusEl = $("summaryStatus");
+  if (!summarySelectedItems.length) {
+    statusEl.innerHTML = `<div class="error-box">❌ กรุณาเลือกรายการก่อน</div>`;
+    return;
+  }
+  const money = v => parseMoney(v).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const pages = summarySelectedItems.map((sel, index) => {
+    const cm = COL_MAP[sel.sheetType];
+    const d = sel.rawRow;
+    const typeLabel = sel.sheetType === "contract" ? "สัญญา" : (sel.sheetType === "po" ? "ใบสั่งจ้าง" : "ข้อตกลง");
+    const x = v => esc(v == null ? "" : v);
+    return `<section class="page">
+      <h1>ข้อมูลสาระสำคัญในสัญญา</h1>
+      <h2>ศูนย์ข้อมูลเกษตรแห่งชาติ สำนักงานเศรษฐกิจการเกษตร</h2>
+      <table class="info">
+        <tr><td class="n">1</td><td class="l">หน่วยงาน</td><td>ศูนย์ข้อมูลเกษตรแห่งชาติ สำนักงานเศรษฐกิจการเกษตร</td></tr>
+        <tr><td class="n">2</td><td class="l">เลขที่โครงการ (e-GP)</td><td>${x(d[1])}</td></tr>
+        <tr><td class="n">3</td><td class="l">ชื่อโครงการ/รายการ</td><td>${x(d[cm.project])}</td></tr>
+        <tr><td class="n">4</td><td class="l">งบประมาณที่ได้รับจัดสรร (บาท)</td><td>${money(d[cm.budget])} บาท</td></tr>
+        <tr><td class="n">5</td><td class="l">ราคากลาง (บาท)</td><td>${money(d[cm.medianPrice])} บาท</td></tr>
+      </table>
+      <p class="sec"><b>6</b> &nbsp;<b>รายชื่อผู้เสนอราคา มีดังนี้</b></p>
+      <table class="grid">
+        <tr><th style="width:6%">ลำดับ</th><th style="width:34%">รายการพิจารณา</th><th style="width:18%">เลขประจำตัวผู้เสียภาษีฯ</th><th>รายชื่อผู้เสนอราคา</th><th style="width:16%">ราคาที่เสนอ (บาท)</th></tr>
+        <tr><td class="c">1</td><td>${x(d[cm.project])}</td><td class="c">${x(d[6])}</td><td>${x(d[cm.party])}</td><td class="r">${money(d[cm.offeredPrice])}</td></tr>
+      </table>
+      <p class="sec"><b>7</b> &nbsp;<b>ผู้ที่ได้รับการคัดเลือก ได้แก่</b></p>
+      <table class="grid">
+        <tr><th style="width:5%">ลำดับ</th><th style="width:13%">เลขประจำตัวผู้เสียภาษีฯ</th><th>ชื่อผู้ขาย/คู่สัญญา</th><th style="width:12%">เลขคุมสัญญาในระบบ e-GP</th><th style="width:10%">${typeLabel} เลขที่</th><th style="width:9%">วันที่ทำสัญญา</th><th style="width:11%">จำนวนเงิน (บาท)</th><th style="width:9%">สถานะสัญญา</th><th style="width:14%">เหตุผลที่คัดเลือก</th></tr>
+        <tr><td class="c">1</td><td class="c">${x(d[6])}</td><td>${x(d[cm.party])}</td><td class="c">${x(d[2])}</td><td class="c">${x(d[0])}</td><td class="c">${x(d[cm.date])}</td><td class="r">${money(d[cm.amount])}</td><td class="c">${x(d[cm.status])}</td><td>เป็นผู้มีคุณสมบัติตรงตามเงื่อนไขที่กำหนด</td></tr>
+      </table>
+    </section>`;
+  }).join("");
+
+  const doc = `<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8"><title>สาระสำคัญสัญญา</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+  @page { size: A4 landscape; margin: 12mm; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: 'TH SarabunPSK','Sarabun',sans-serif; font-size: 14pt; color: #000; }
+  .page { page-break-after: always; }
+  .page:last-child { page-break-after: auto; }
+  h1 { text-align: center; font-size: 18pt; margin: 0 0 4px; }
+  h2 { text-align: center; font-size: 14pt; margin: 0 0 14px; }
+  table { width: 100%; border-collapse: collapse; }
+  .info td { padding: 3px 6px; vertical-align: top; }
+  .info .n { width: 5%; text-align: center; font-weight: 700; }
+  .info .l { width: 28%; font-weight: 700; }
+  .sec { margin: 16px 0 6px; }
+  .grid th, .grid td { border: 1px solid #333; padding: 4px 6px; vertical-align: middle; }
+  .grid th { text-align: center; font-weight: 700; background: #f1f1f1; }
+  .c { text-align: center; } .r { text-align: right; }
+  </style></head><body>${pages}</body></html>`;
+
+  const frame = document.createElement("iframe");
+  frame.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0";
+  document.body.appendChild(frame);
+  frame.contentDocument.open();
+  frame.contentDocument.write(doc);
+  frame.contentDocument.close();
+  try { await Promise.race([frame.contentWindow.document.fonts.ready, new Promise(r => setTimeout(r, 3000))]); } catch (e) {}
+  await new Promise(r => setTimeout(r, 300));
+  frame.contentWindow.focus();
+  frame.contentWindow.print();
+  setTimeout(() => frame.remove(), 60000);
+  statusEl.innerHTML = `<div class="success-box">✅ เปิดหน้าต่างพิมพ์แล้ว — เลือกปลายทางเป็น "บันทึกเป็น PDF" (แนวนอน) · ${summarySelectedItems.length} หน้า</div>`;
+}
 // ═══════════ INIT ═══════════
 fetchData();
 </script>
