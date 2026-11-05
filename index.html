@@ -276,6 +276,36 @@ function loadGvizSheet(key, tab) {
   });
 }
 
+const COL_RULES = {
+  date:         [/วันที่/],
+  party:        [/คู่สัญญา/, /คู่ค้า/, /ผู้ขาย/, /ผู้รับจ้าง/],
+  project:      [/รายการ/, /โครงการ(?!\s*\()/],
+  budget:       [/วงเงินงบประมาณ/],
+  medianPrice:  [/ราคากลาง/],
+  offeredPrice: [/ราคาที่เสนอ/],
+  agreedPrice:  [/ราคาที่ตกลง/],
+  amount:       [/วงเงินตามสัญญา/, /วงเงินตาม/],
+  startDate:    [/เริ่มต้น/],
+  endDate:      [/สิ้นสุด/],
+  status:       [/สถานะ/]
+};
+
+// หาคอลัมน์จากชื่อหัวตารางของแต่ละแท็บ (ตำแหน่งคอลัมน์ต่างกันได้) — ถ้าหาไม่เจอใช้ตำแหน่งเดิมใน COL_MAP
+function detectColumns(key, headers) {
+  const hs = headers.map(h => (h || "").replace(/\s+/g, ""));
+  const base = COL_MAP[key] || {};
+  const map = Object.assign({}, base, { no: 0 });
+  for (const field in COL_RULES) {
+    let idx = -1;
+    for (const re of COL_RULES[field]) {
+      idx = hs.findIndex((h, i) => h && re.test(h) && !(field !== "no" && i === 0));
+      if (idx >= 0) break;
+    }
+    if (idx >= 0) map[field] = idx;
+    else if (!(field in base)) delete map[field];
+  }
+  return map;
+}
 function fetchData() {
   $("statusText").textContent = "⏳ กำลังดึงข้อมูล...";
   $("errorBox").classList.add("hidden");
@@ -284,6 +314,7 @@ function fetchData() {
     const data = {};
     keys.forEach((k, i) => data[k] = list[i]);
     sheetData = data;
+    keys.forEach(k => { COL_MAP[k] = detectColumns(k, data[k].headers); });
     $("statusText").innerHTML = `✅ อัปเดตล่าสุด: ${new Date().toLocaleTimeString("th-TH")}`;
     renderDashboard();
   }).catch(err => {
